@@ -4,8 +4,9 @@ node_modules/
 # Variáveis de ambiente
 .env
 
-# Uploads
-uploads/
+# Uploads (ignora arquivos, mantém a pasta)
+uploads/*
+!uploads/.gitkeep
 
 # Logs
 npm-debug.log*
