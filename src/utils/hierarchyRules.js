@@ -1,7 +1,6 @@
 exports.definirCategoriaPorPatente = (patente) => {
   if (!patente) return "ESTAGIARIOS";
 
-  // ===== OFICIAIS SUPERIORES =====
   if (
     patente.includes("Coronel") ||
     patente.includes("Tenente-Coronel") ||
@@ -10,12 +9,10 @@ exports.definirCategoriaPorPatente = (patente) => {
     return "OFICIAIS_SUPERIORES";
   }
 
-  // ===== OFICIAIS INTERMEDIÁRIOS =====
   if (patente.includes("Capitão")) {
     return "OFICIAIS_INTERMEDIARIOS";
   }
 
-  // ===== OFICIAIS SUBALTERNOS =====
   if (
     patente.includes("1º Tenente") ||
     patente.includes("2º Tenente")
@@ -23,12 +20,10 @@ exports.definirCategoriaPorPatente = (patente) => {
     return "OFICIAIS_SUBALTERNOS";
   }
 
-  // ===== PRAÇAS ESPECIAIS =====
   if (patente.includes("Aspirante")) {
     return "PRACAS_ESPECIAIS";
   }
 
-  // ===== PRAÇAS GRADUADAS =====
   if (
     patente.includes("Subtenente") ||
     patente.includes("1º Sargento") ||
@@ -38,7 +33,6 @@ exports.definirCategoriaPorPatente = (patente) => {
     return "PRACAS_GRADUADAS";
   }
 
-  // ===== PRAÇAS =====
   if (
     patente.includes("Cabo") ||
     patente.includes("Soldado 1ª Classe")
@@ -46,10 +40,35 @@ exports.definirCategoriaPorPatente = (patente) => {
     return "PRACAS";
   }
 
-  // ===== ESTAGIÁRIOS =====
   if (patente.includes("Soldado 2ª Classe")) {
     return "ESTAGIARIOS";
   }
 
   return "ESTAGIARIOS";
+};
+
+/**
+ * ✅ NOVO — peso militar da patente
+ * ⚠️ NÃO remove nada existente
+ */
+exports.getPesoPatente = (patente = "") => {
+  const ordem = [
+    "Coronel",
+    "Tenente-Coronel",
+    "Major",
+    "Capitão",
+    "1º Tenente",
+    "2º Tenente",
+    "Aspirante",
+    "Subtenente",
+    "1º Sargento",
+    "2º Sargento",
+    "3º Sargento",
+    "Cabo",
+    "Soldado 1ª Classe",
+    "Soldado 2ª Classe"
+  ];
+
+  const index = ordem.findIndex(p => patente.includes(p));
+  return index === -1 ? 999 : index;
 };

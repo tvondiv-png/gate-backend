@@ -3,6 +3,19 @@ const User = require("../models/User");
 const hierarchyRules = require("../utils/hierarchyRules");
 const logAction = require("../utils/logAction");
 
+/* ==========================
+   NORMALIZA CATEGORIA
+========================== */
+const normalizarCategoria = (categoria) => {
+  if (!categoria) return categoria;
+
+  return categoria
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+};
+
 /**
  * 👤 USUÁRIO – MINHA HIERARQUIA
  */
@@ -25,28 +38,29 @@ exports.getMinhaHierarquia = async (req, res) => {
 };
 
 /**
- * 🌐 PÚBLICO – HIERARQUIA
- * ⚠️ FORMATO NÃO MUDA
+ * 🌐 PÚBLICO – HIERARQUIA (LEGADO / ADMIN)
+ * ⚠️ NÃO USADA NA HIERARQUIA PÚBLICA PRINCIPAL
  */
 exports.getHierarchyPublic = async (req, res) => {
   try {
-    const hierarchy = await Hierarchy.find({ status: "Ativo" })
-      .sort({ categoria: 1, patente: 1 });
+    const hierarchy = await Hierarchy.find({ status: "Ativo" });
 
     const agrupado = {};
 
     hierarchy.forEach(h => {
-      if (!agrupado[h.categoria]) {
-        agrupado[h.categoria] = {
-          categoria: h.categoria,
+      const categoria = normalizarCategoria(h.categoria);
+
+      if (!agrupado[categoria]) {
+        agrupado[categoria] = {
+          categoria,
           cor: h.cor,
           total: 0,
           membros: []
         };
       }
 
-      agrupado[h.categoria].total++;
-      agrupado[h.categoria].membros.push(h);
+      agrupado[categoria].total++;
+      agrupado[categoria].membros.push(h);
     });
 
     res.json(agrupado);
@@ -57,13 +71,12 @@ exports.getHierarchyPublic = async (req, res) => {
 };
 
 /**
- * 🧑‍💼 ADM – LISTAR
+ * 🧑‍💼 ADM – LISTAR TODA HIERARQUIA
  */
 exports.getHierarchy = async (req, res) => {
   try {
     const hierarchy = await Hierarchy.find()
-      .populate("user", "nome funcional")
-      .sort({ categoria: 1, patente: 1 });
+      .populate("user", "nome funcional");
 
     res.json(hierarchy);
   } catch (err) {
