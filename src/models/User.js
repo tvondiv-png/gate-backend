@@ -46,7 +46,12 @@ const UserSchema = new mongoose.Schema(
         "PRACAS_GRADUADAS",
         "PRACAS",
         "ESTAGIARIOS"
-      ]
+      ],
+      set: v =>
+        v
+          ?.normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
     },
 
     patente: {

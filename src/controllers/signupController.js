@@ -90,7 +90,7 @@ exports.approve = async (req, res) => {
       funcional: request.funcional,
       nome: request.nome,
       patente: "Soldado 2ª Classe PM",
-      categoria: "ESTAGIÁRIOS",
+      categoria: "ESTAGIARIOS",
       funcao: "Operacional",
       status: "Ativo",
       cursos: []

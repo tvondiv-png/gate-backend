@@ -16,7 +16,22 @@ exports.meusRSOs = async (req, res) => {
 // ============================
 exports.abrirRSO = async (req, res) => {
   try {
-    const { viatura, equipeFixa, equipeRotativa } = req.body;
+    const { viatura, equipeFixa } = req.body;
+
+// 🔒 GARANTIA ABSOLUTA
+const equipeRotativa = {
+  motorista: Array.isArray(req.body.equipeRotativa?.motorista)
+    ? req.body.equipeRotativa.motorista
+    : [],
+  quarto: Array.isArray(req.body.equipeRotativa?.quarto)
+    ? req.body.equipeRotativa.quarto
+    : [],
+  quinto: Array.isArray(req.body.equipeRotativa?.quinto)
+    ? req.body.equipeRotativa.quinto
+    : [],
+  terceiro: []
+};
+
 
     if (!viatura) {
       return res.status(400).json({ message: "Viatura é obrigatória" });
@@ -35,7 +50,6 @@ exports.abrirRSO = async (req, res) => {
     }
 
     if (
-      !equipeRotativa ||
       !Array.isArray(equipeRotativa.motorista) ||
       !equipeRotativa.motorista[0]?.funcional
     ) {
@@ -58,6 +72,7 @@ exports.abrirRSO = async (req, res) => {
         patente: h.patente,
         cargo,
         horaEntrada: new Date(),
+        horaSaida: null,
         status: "Ativo",
         tempoMinutos: 0
       };
@@ -75,8 +90,16 @@ exports.abrirRSO = async (req, res) => {
             buscar(p.funcional, "Motorista")
           )
         ),
-        quarto: [],
-        quinto: []
+        quarto: await Promise.all(
+          equipeRotativa.quarto.map(p =>
+            buscar(p.funcional, "4º Homem")
+          )
+        ),
+        quinto: await Promise.all(
+          equipeRotativa.quinto.map(p =>
+            buscar(p.funcional, "5º Homem")
+          )
+        )
       },
       observacoes: "",
       apreensoes: [],
@@ -88,7 +111,6 @@ exports.abrirRSO = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 };
-
 
 // ============================
 // ADICIONAR POLICIAL
@@ -115,6 +137,7 @@ exports.adicionarPolicial = async (req, res) => {
     patente: h.patente,
     cargo,
     horaEntrada: new Date(),
+    horaSaida: null,
     status: "Ativo",
     tempoMinutos: 0
   });
@@ -124,7 +147,7 @@ exports.adicionarPolicial = async (req, res) => {
 };
 
 // ============================
-// ADICIONAR APREENSÃO (SEM UNIDADE)
+// ADICIONAR APREENSÃO
 // ============================
 exports.adicionarApreensao = async (req, res) => {
   const { id } = req.params;
@@ -141,15 +164,15 @@ exports.adicionarApreensao = async (req, res) => {
   res.json(rso);
 };
 
-// ADICIONAR / ATUALIZAR OBSERVAÇÕES
-exports.atualizarObservacoes = async (req, res) => {
+// ============================
+// ATUALIZAR OBSERVAÇÕES (ATIVO)
+// ============================
+exports.atualizarObservacoesAtivo = async (req, res) => {
   const { id } = req.params;
   const { observacoes } = req.body;
 
   const rso = await RSO.findById(id);
-  if (!rso) {
-    return res.status(404).json({ message: "RSO não encontrado" });
-  }
+  if (!rso) return res.status(404).json({ message: "RSO não encontrado" });
 
   if (rso.status !== "Ativo") {
     return res.status(400).json({
@@ -162,7 +185,6 @@ exports.atualizarObservacoes = async (req, res) => {
 
   res.json(rso);
 };
-;
 
 // ============================
 // ENCERRAR POLICIAL
@@ -260,7 +282,7 @@ exports.excluirMeuRSO = async (req, res) => {
 };
 
 // ============================
-// ATUALIZAR OBSERVAÇÕES (RSO ATIVO)
+// ATUALIZAR OBSERVAÇÕES (FINAL)
 // ============================
 exports.atualizarObservacoes = async (req, res) => {
   const { id } = req.params;
@@ -282,6 +304,3 @@ exports.atualizarObservacoes = async (req, res) => {
 
   res.json({ message: "Observações atualizadas" });
 };
-
-
-
