@@ -1,9 +1,24 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middlewares/authMiddleware");
-const controller = require("../controllers/notificationController");
 
-router.get("/", protect(), controller.listMyNotifications);
-router.post("/:id/read", protect(), controller.markAsRead);
+const {
+  listMyNotifications,
+  markAsRead
+} = require("../controllers/notificationController");
+
+// 🔔 Minhas notificações
+router.get(
+  "/me",
+  protect(["user", "admin", "superadmin"]),
+  listMyNotifications
+);
+
+// ✅ Marcar como lida
+router.put(
+  "/:id/read",
+  protect(["user", "admin", "superadmin"]),
+  markAsRead
+);
 
 module.exports = router;

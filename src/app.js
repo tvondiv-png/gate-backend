@@ -1,19 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 const xss = require("xss-clean");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 
-// 🔥 CONFIAR NO NGINX / PROXY
-app.set("trust proxy", true);
+// 🔥 CONFIAR NO NGINX / PROXY (OBRIGATÓRIO)
+app.set("trust proxy", 1);
 
-// ================= MIDDLEWARES BÁSICOS =================
+// ================= MIDDLEWARES =================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ================= CORS =================
 app.use(
   cors({
     origin: [
@@ -28,7 +27,6 @@ app.use(
   })
 );
 
-// ================= SEGURANÇA =================
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -37,7 +35,7 @@ app.use(
 
 app.use(xss());
 
-// ✅ RATE LIMIT CORRETO (SEM keyGenerator)
+// ✅ RATE LIMIT (AGORA CORRETO)
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -68,6 +66,13 @@ app.use("/api/indications", require("./routes/indicationRoutes"));
 app.use("/api/admin/indications", require("./routes/indicationAdminRoutes"));
 app.use("/api/apreensoes", require("./routes/seizureRoutes"));
 app.use("/api/slideshow", require("./routes/homeSlideRoutes"));
+app.use("/api/admin/rso-extra", require("./routes/rsoAdminExtraRoutes"));
+
+
+
+
+
+
 
 // ================= UPLOADS =================
 app.use("/uploads", express.static("uploads"));
@@ -77,4 +82,11 @@ app.get("/api/test", (req, res) => {
   res.json({ ok: true });
 });
 
+app.use(
+  "/api/user/dashboard",
+  require("./routes/userDashboardRoutes")
+);
+
+
+// 🔴 ESSENCIAL
 module.exports = app;

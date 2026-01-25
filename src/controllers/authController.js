@@ -84,3 +84,26 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: "Erro ao trocar senha" });
   }
 };
+
+// ============================
+// 🔍 USUÁRIO LOGADO (REIDRATAÇÃO)
+// ============================
+exports.me = async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.json({
+      id: user._id,
+      nome: user.nome,
+      funcional: user.funcional,
+      role: user.role,
+      patente: user.patente,
+      status: user.status,
+      senhaPadrao: !!user.senhaPadrao
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar usuário logado" });
+  }
+};
+
+
