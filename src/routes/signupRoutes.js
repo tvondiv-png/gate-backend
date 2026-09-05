@@ -1,20 +1,37 @@
 const express = require("express");
 const router = express.Router();
 
-console.log("✅ signupRoutes carregadas");
-
 const signupController = require("../controllers/signupController");
+const { protect } = require("../middlewares/authMiddleware");
 
-// criar solicitação
+// =========================================================
+// PÚBLICO
+// Qualquer visitante pode enviar uma solicitação de cadastro.
+// =========================================================
+
 router.post("/", signupController.create);
 
-// listar solicitações
-router.get("/", signupController.list);
+// =========================================================
+// ADMIN
+// Listar, aprovar e rejeitar exigem admin ou superadmin.
+// =========================================================
 
-// aprovar solicitação
-router.put("/approve/:id", signupController.approve);
+router.get(
+  "/",
+  protect(["admin", "superadmin"]),
+  signupController.list
+);
 
-// rejeitar solicitação
-router.put("/reject/:id", signupController.reject);
+router.put(
+  "/approve/:id",
+  protect(["admin", "superadmin"]),
+  signupController.approve
+);
+
+router.put(
+  "/reject/:id",
+  protect(["admin", "superadmin"]),
+  signupController.reject
+);
 
 module.exports = router;

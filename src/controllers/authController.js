@@ -31,9 +31,6 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne(query);
 
-    console.log("LOGIN RECEBIDO:", login);
-    console.log("USUÁRIO ENCONTRADO:", !!user);
-
     if (!user) {
       return res.status(401).json({ message: "Usuário não encontrado" });
     }
@@ -83,10 +80,24 @@ exports.login = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const { senha } = req.body;
+    const { senhaAtual, senha } = req.body;
 
     if (!senha || senha.length < 6) {
-      return res.status(400).json({ message: "Senha inválida" });
+      return res.status(400).json({ message: "A nova senha deve ter no mínimo 6 caracteres" });
+    }
+
+    if (!senhaAtual) {
+      return res.status(400).json({ message: "Informe a senha atual" });
+    }
+
+    const confere = await bcrypt.compare(senhaAtual, req.user.senha || "");
+
+    if (!confere) {
+      return res.status(401).json({ message: "Senha atual incorreta" });
+    }
+
+    if (senhaAtual === senha) {
+      return res.status(400).json({ message: "A nova senha deve ser diferente da atual" });
     }
 
     const hash = await bcrypt.hash(senha, 10);
