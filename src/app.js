@@ -179,6 +179,11 @@ app.use(
 );
 
 app.use(
+  "/api/historia",
+  require("./routes/historiaRoutes")
+);
+
+app.use(
   "/api/penal-code",
   require("./routes/penalCodeRoutes")
 );
