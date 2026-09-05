@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/homeController");
+const { getHomeData } = require("../controllers/homeController");
 
-// 🌐 ROTA PÚBLICA
-router.get("/", controller.getHomeData);
+router.get("/", getHomeData);
 
 module.exports = router;

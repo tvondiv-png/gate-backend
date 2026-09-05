@@ -7,14 +7,51 @@ const RSOHistorySchema = new mongoose.Schema(
       ref: "RSO"
     },
 
-    viatura: String,
+    tipoPatrulhamento: {
+      type: String,
+      enum: [
+        "VIATURA",
+        "ROCAM"
+      ],
+      default: "VIATURA"
+    },
 
-    equipeFixa: Object,
-    equipeRotativa: Object,
+    viatura: {
+      type: String,
+      default: ""
+    },
 
-    apreensoes: Array,
+    /*
+     * NOVO MODELO
+     */
+    equipe: {
+      type: Array,
+      default: []
+    },
 
-    totalMinutos: Number,
+    /*
+     * MODELO ANTIGO
+     * Mantido para histórico existente
+     */
+    equipeFixa: {
+      type: Object,
+      default: {}
+    },
+
+    equipeRotativa: {
+      type: Object,
+      default: {}
+    },
+
+    apreensoes: {
+      type: Array,
+      default: []
+    },
+
+    totalMinutos: {
+      type: Number,
+      default: 0
+    },
 
     aprovadoPor: {
       type: mongoose.Schema.Types.ObjectId,
@@ -26,7 +63,12 @@ const RSOHistorySchema = new mongoose.Schema(
       default: Date.now
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 );
 
-module.exports = mongoose.model("RSOHistory", RSOHistorySchema);
+module.exports = mongoose.model(
+  "RSOHistory",
+  RSOHistorySchema
+);

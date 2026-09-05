@@ -5,7 +5,6 @@ const { protect } = require("../middlewares/authMiddleware");
 
 router.post("/login", authController.login);
 
-// 🔑 NOVA ROTA (ESSENCIAL PARA O FRONTEND)
 router.get(
   "/me",
   protect(["user", "admin", "superadmin"]),

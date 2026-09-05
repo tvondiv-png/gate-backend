@@ -1,12 +1,16 @@
 const HomeStats = require("../models/HomeStats");
 
-// 🌐 PÚBLICO – DADOS DA HOME
 exports.getHomeData = async (req, res) => {
-  const stats = await HomeStats.findOne();
-  res.json(
-    stats || {
-      apreensoes: {},
-      policialDestaque: null
+  try {
+    let stats = await HomeStats.findOne();
+
+    if (!stats) {
+      stats = await HomeStats.create({});
     }
-  );
+
+    res.json(stats);
+  } catch (err) {
+    console.error("Erro ao buscar Home:", err);
+    res.status(500).json({ message: "Erro ao carregar dados da home" });
+  }
 };

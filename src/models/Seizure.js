@@ -4,7 +4,7 @@ const SeizureSchema = new mongoose.Schema(
   {
     tipo: {
       type: String,
-      enum: ["Armas", "Munições", "Entorpecentes", "Valores", "Ilícitos"],
+      enum: ["Armas", "Munições", "Entorpecentes", "Ilicitos", "Valores"],
       required: true,
       unique: true
     },

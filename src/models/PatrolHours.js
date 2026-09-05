@@ -32,6 +32,17 @@ const PatrolHoursSchema = new mongoose.Schema(
     horasMesMin: {
       type: Number,
       default: 0
+    },
+
+    ausenciaPatrulhamento: {
+      type: String,
+      enum: ["normal", "justificada", "nao_justificada", "iniciante"],
+      default: "normal"
+    },
+
+    observacaoAusencia: {
+      type: String,
+      default: ""
     }
   },
   { timestamps: true }

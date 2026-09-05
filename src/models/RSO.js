@@ -5,10 +5,35 @@ const mongoose = require("mongoose");
 // ============================
 const IntegranteSchema = new mongoose.Schema(
   {
-    funcional: { type: Number, required: true },
-    nome: { type: String, required: true },
-    patente: { type: String, required: true },
-    cargo: { type: String, required: true },
+    funcional: {
+      type: Number,
+      required: true
+    },
+
+    nome: {
+      type: String,
+      required: true
+    },
+
+    patente: {
+      type: String,
+      required: true
+    },
+
+    cargo: {
+      type: String,
+      required: true
+    },
+
+    qualificacaoRocam: {
+      type: String,
+      enum: [
+        "NENHUM",
+        "ESTAGIARIO_ROCAM",
+        "BRACAL_ROCAM"
+      ],
+      default: "NENHUM"
+    },
 
     horaEntrada: {
       type: Date,
@@ -27,11 +52,16 @@ const IntegranteSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Ativo", "Encerrado"],
+      enum: [
+        "Ativo",
+        "Encerrado"
+      ],
       default: "Ativo"
     }
   },
-  { _id: false }
+  {
+    _id: false
+  }
 );
 
 // ============================
@@ -41,12 +71,24 @@ const ApreensaoSchema = new mongoose.Schema(
   {
     tipo: {
       type: String,
-      enum: ["Armas", "Munições", "Entorpecentes", "Valores", "Ilícitos"],
+      enum: [
+        "Armas",
+        "Munições",
+        "Entorpecentes",
+        "Ilicitos",
+        "Valores"
+      ],
       required: true
     },
-    quantidade: { type: Number, required: true },
-      },
-  { _id: false }
+
+    quantidade: {
+      type: Number,
+      required: true
+    }
+  },
+  {
+    _id: false
+  }
 );
 
 // ============================
@@ -54,7 +96,34 @@ const ApreensaoSchema = new mongoose.Schema(
 // ============================
 const RSOSchema = new mongoose.Schema(
   {
-    viatura: { type: String, required: true },
+    /* =====================================================
+       NOVO MODELO
+       Usado pelos novos RSOs do 2º BPChq Anchieta
+    ===================================================== */
+
+    tipoPatrulhamento: {
+      type: String,
+      enum: [
+        "VIATURA",
+        "ROCAM"
+      ],
+      default: "VIATURA"
+    },
+
+    viatura: {
+      type: String,
+      required: true
+    },
+
+    equipe: {
+      type: [IntegranteSchema],
+      default: []
+    },
+
+    /* =====================================================
+       MODELO ANTIGO
+       Mantido para compatibilidade com os RSOs existentes
+    ===================================================== */
 
     equipeFixa: {
       chefe: IntegranteSchema,
@@ -68,19 +137,36 @@ const RSOSchema = new mongoose.Schema(
       quinto: [IntegranteSchema]
     },
 
+    /* =====================================================
+       APREENSÕES
+    ===================================================== */
+
     apreensoes: {
       type: [ApreensaoSchema],
       default: []
     },
+
+    /* =====================================================
+       OBSERVAÇÕES
+    ===================================================== */
 
     observacoes: {
       type: String,
       default: ""
     },
 
+    /* =====================================================
+       STATUS
+    ===================================================== */
+
     status: {
       type: String,
-      enum: ["Ativo", "Pendente", "Aprovado", "Rejeitado"],
+      enum: [
+        "Ativo",
+        "Pendente",
+        "Aprovado",
+        "Rejeitado"
+      ],
       default: "Ativo"
     },
 
@@ -89,13 +175,55 @@ const RSOSchema = new mongoose.Schema(
       default: ""
     },
 
+    /* =====================================================
+       RESPONSÁVEL PELA ABERTURA
+    ===================================================== */
+
     criadoPor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
+    },
+
+    /* =====================================================
+       CONTROLE DE HORAS
+    ===================================================== */
+
+    horasJaContabilizadas: {
+      type: Boolean,
+      default: false
+    },
+
+    dataContabilizacaoHoras: {
+      type: Date,
+      default: null
+    },
+
+    /* =====================================================
+       ENCERRAMENTO MANUAL PELO ADM
+    ===================================================== */
+
+    encerradoManualmentePorADM: {
+      type: Boolean,
+      default: false
+    },
+
+    nomeADMEncerramento: {
+      type: String,
+      default: ""
+    },
+
+    dataEncerramentoADM: {
+      type: Date,
+      default: null
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 );
 
-module.exports = mongoose.model("RSO", RSOSchema);
+module.exports = mongoose.model(
+  "RSO",
+  RSOSchema
+);

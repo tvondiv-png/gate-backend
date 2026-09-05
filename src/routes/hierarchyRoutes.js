@@ -1,42 +1,107 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
-  getHierarchy,
+  listHierarchy,
   updateHierarchy,
   deleteHierarchy,
   getMinhaHierarquia,
-  getHierarchyPublic
+  getHierarchyPublic,
+  getHierarchyPublicList,
+  getHierarchyRocam,
+  getHierarchyRocamList,
+  listPolice
 } = require("../controllers/hierarchyController");
 
-const { protect } = require("../middlewares/authMiddleware");
+const {
+  protect
+} = require("../middlewares/authMiddleware");
 
-// 👤 USUÁRIO
+/* =========================================================
+   USUÁRIO LOGADO — MINHA HIERARQUIA
+========================================================= */
+
 router.get(
   "/me",
-  protect(["user", "admin", "superadmin"]),
+  protect([
+    "user",
+    "admin",
+    "superadmin",
+    "comando"
+  ]),
   getMinhaHierarquia
 );
 
-// 🌐 PÚBLICO
-router.get("/public", getHierarchyPublic);
+/* =========================================================
+   PÚBLICO — HIERARQUIA GERAL
 
-// 🧑‍💼 ADM
+   NÃO USAR protect aqui.
+========================================================= */
+
+router.get(
+  "/public",
+  getHierarchyPublic
+);
+
+router.get(
+  "/public/list",
+  getHierarchyPublicList
+);
+
+/* =========================================================
+   PÚBLICO — HIERARQUIA ROCAM
+
+   NÃO USAR protect aqui.
+========================================================= */
+
+router.get(
+  "/rocam",
+  getHierarchyRocam
+);
+
+router.get(
+  "/rocam/list",
+  getHierarchyRocamList
+);
+
+/* =========================================================
+   ADMINISTRAÇÃO
+========================================================= */
+
 router.get(
   "/",
-  protect(["admin", "superadmin"]),
-  getHierarchy
+  protect([
+    "admin",
+    "superadmin"
+  ]),
+  listHierarchy
+);
+
+router.get(
+  "/police",
+  protect([
+    "admin",
+    "superadmin"
+  ]),
+  listPolice
 );
 
 router.put(
   "/:id",
-  protect(["admin", "superadmin"]),
+  protect([
+    "admin",
+    "superadmin"
+  ]),
   updateHierarchy
 );
 
 router.delete(
   "/:id",
-  protect(["admin", "superadmin"]),
+  protect([
+    "admin",
+    "superadmin"
+  ]),
   deleteHierarchy
 );
 

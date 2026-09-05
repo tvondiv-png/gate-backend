@@ -12,12 +12,19 @@ exports.create = async (req, res) => {
     const { nome, funcional, email } = req.body;
 
     if (!nome || !funcional || !email) {
-      return res.status(400).json({ message: "Dados incompletos" });
+      return res.status(400).json({
+        message: "Dados incompletos"
+      });
     }
 
-    const exists = await SignupRequest.findOne({ funcional });
+    const exists = await SignupRequest.findOne({
+      funcional
+    });
+
     if (exists) {
-      return res.status(400).json({ message: "Solicitação já existente" });
+      return res.status(400).json({
+        message: "Solicitação já existente"
+      });
     }
 
     const request = await SignupRequest.create({
@@ -27,13 +34,16 @@ exports.create = async (req, res) => {
       status: "Pendente"
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Solicitação enviada com sucesso",
       request
     });
   } catch (err) {
     console.error("Erro create signup:", err);
-    res.status(500).json({ message: "Erro interno" });
+
+    return res.status(500).json({
+      message: "Erro interno"
+    });
   }
 };
 
@@ -42,11 +52,19 @@ exports.create = async (req, res) => {
 // ===============================
 exports.list = async (req, res) => {
   try {
-    const requests = await SignupRequest.find({ status: "Pendente" });
-    res.json(requests);
+    const requests = await SignupRequest.find({
+      status: "Pendente"
+    }).sort({
+      createdAt: 1
+    });
+
+    return res.json(requests);
   } catch (err) {
     console.error("Erro list signup:", err);
-    res.status(500).json({ message: "Erro ao listar solicitações" });
+
+    return res.status(500).json({
+      message: "Erro ao listar solicitações"
+    });
   }
 };
 
@@ -55,58 +73,167 @@ exports.list = async (req, res) => {
 // ===============================
 exports.approve = async (req, res) => {
   try {
-    const request = await SignupRequest.findById(req.params.id);
+    const request = await SignupRequest.findById(
+      req.params.id
+    );
 
     if (!request) {
-      return res.status(404).json({ message: "Solicitação não encontrada" });
-    }
-
-    // 🔒 evita duplicidade
-    const userExists = await User.findOne({ funcional: request.funcional });
-    if (userExists) {
-      await SignupRequest.findByIdAndDelete(request._id);
-      return res.status(400).json({
-        message: "Já existe usuário com essa funcional"
+      return res.status(404).json({
+        message: "Solicitação não encontrada"
       });
     }
 
-    // senha padrão
-    const senhaHash = await bcrypt.hash("123456", 10);
+    // ===============================
+    // EVITA DUPLICIDADE
+    // ===============================
+    const userExists = await User.findOne({
+      funcional: request.funcional
+    });
 
-    // cria usuário
+    if (userExists) {
+      await SignupRequest.findByIdAndDelete(
+        request._id
+      );
+
+      return res.status(400).json({
+        message:
+          "Já existe usuário com essa funcional"
+      });
+    }
+
+    const hierarchyExists =
+      await Hierarchy.findOne({
+        funcional: request.funcional
+      });
+
+    if (hierarchyExists) {
+      await SignupRequest.findByIdAndDelete(
+        request._id
+      );
+
+      return res.status(400).json({
+        message:
+          "Já existe registro de hierarquia com essa funcional"
+      });
+    }
+
+    // ===============================
+    // DATA DE ENTRADA
+    // ===============================
+    const dataEntrada = new Date();
+
+    // ===============================
+    // SENHA PADRÃO
+    // ===============================
+    const senhaHash = await bcrypt.hash(
+      "123456",
+      10
+    );
+
+    // ===============================
+    // CRIA USUÁRIO
+    // ===============================
     const user = await User.create({
       nome: request.nome,
       funcional: request.funcional,
       email: request.email,
       senha: senhaHash,
+
       role: "user",
-      patente: "Soldado 2ª Classe PM",
-      ativo: true
+
+      patente:
+        "Soldado 2ª Classe PM",
+
+      ativo: true,
+
+      // opcional, caso seu User possua esse campo
+      dataEntrada
     });
 
-    // cria hierarquia
-    const hierarchy = await Hierarchy.create({
-      user: user._id,
-      funcional: request.funcional,
-      nome: request.nome,
-      patente: "Soldado 2ª Classe PM",
-      categoria: "ESTAGIARIOS",
-      funcao: "Operacional",
-      status: "Ativo",
-      cursos: []
+    // ===============================
+    // CRIA HIERARQUIA
+    // ===============================
+    const hierarchy =
+      await Hierarchy.create({
+        user: user._id,
+
+        funcional:
+          request.funcional,
+
+        nome:
+          request.nome,
+
+        patente:
+          "Soldado 2ª Classe PM",
+
+        categoria:
+          "ESTAGIARIOS",
+
+        funcao:
+          "Operacional",
+
+        status:
+          "Ativo",
+
+        cursos: [],
+
+        medalhas: [],
+
+        qualificacaoRocam:
+          "NENHUM",
+
+        // ✅ preenchido automaticamente
+        dataEntrada,
+
+        dataUltimaPromocao:
+          null
+      });
+
+    // ===============================
+    // SINCRONIZA COM HORAS
+    // ===============================
+    await syncFromHierarchy(
+      hierarchy
+    );
+
+    // ===============================
+    // REMOVE SOLICITAÇÃO
+    // ===============================
+    await SignupRequest.findByIdAndDelete(
+      request._id
+    );
+
+    return res.json({
+      message:
+        "Solicitação aprovada com sucesso",
+
+      user: {
+        id: user._id,
+        funcional:
+          user.funcional,
+        nome:
+          user.nome
+      },
+
+      hierarchy: {
+        id: hierarchy._id,
+        funcional:
+          hierarchy.funcional,
+        dataEntrada:
+          hierarchy.dataEntrada
+      }
     });
-
-    // 🔗 SINCRONIZA COM HORAS DE PATRULHAMENTO
-    await syncFromHierarchy(hierarchy);
-
-    // remove solicitação após aprovação
-    await SignupRequest.findByIdAndDelete(request._id);
-
-    res.json({ message: "Solicitação aprovada com sucesso" });
   } catch (err) {
-    console.error("🔥 ERRO AO APROVAR SOLICITAÇÃO");
+    console.error(
+      "🔥 ERRO AO APROVAR SOLICITAÇÃO"
+    );
+
     console.error(err);
-    res.status(500).json({ message: "Erro ao aprovar solicitação" });
+
+    return res.status(500).json({
+      message:
+        "Erro ao aprovar solicitação"
+    });
   }
 };
 
@@ -115,13 +242,36 @@ exports.approve = async (req, res) => {
 // ===============================
 exports.reject = async (req, res) => {
   try {
-    await SignupRequest.findByIdAndUpdate(req.params.id, {
-      status: "Rejeitada"
-    });
+    const request =
+      await SignupRequest.findById(
+        req.params.id
+      );
 
-    res.json({ message: "Solicitação rejeitada" });
+    if (!request) {
+      return res.status(404).json({
+        message:
+          "Solicitação não encontrada"
+      });
+    }
+
+    request.status =
+      "Rejeitada";
+
+    await request.save();
+
+    return res.json({
+      message:
+        "Solicitação rejeitada"
+    });
   } catch (err) {
-    console.error("Erro ao rejeitar:", err);
-    res.status(500).json({ message: "Erro ao rejeitar solicitação" });
+    console.error(
+      "Erro ao rejeitar:",
+      err
+    );
+
+    return res.status(500).json({
+      message:
+        "Erro ao rejeitar solicitação"
+    });
   }
 };

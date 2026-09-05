@@ -1,7 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/hierarchyPublicController");
 
-router.get("/", controller.publicHierarchy);
+const {
+  getHierarchyPublic,
+  getHierarchyPublicList
+} = require("../controllers/hierarchyController");
+
+// 🌐 Público agrupado
+router.get("/", getHierarchyPublic);
+
+// 🌐 Público em lista plana
+router.get("/list", getHierarchyPublicList);
 
 module.exports = router;

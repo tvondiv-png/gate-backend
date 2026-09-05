@@ -3,6 +3,13 @@ node_modules/
 
 # Variáveis de ambiente
 .env
+.env.*
+.envpp
+
+# Artefatos de build / pacotes
+*.tar.gz
+*.zip
+*.bak
 
 # Uploads (ignora arquivos, mantém a pasta)
 uploads/*
