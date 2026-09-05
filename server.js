@@ -1,6 +1,7 @@
 require("dotenv").config();
 console.log("🚨 SERVER.JS CARREGADO");
 
+
 const mongoose = require("mongoose");
 const app = require("./src/app");
 

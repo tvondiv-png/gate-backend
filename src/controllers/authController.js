@@ -10,15 +10,26 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Login e senha obrigatórios" });
     }
 
-    // 🔒 NORMALIZAÇÃO
-    login = login.trim().toLowerCase();
-    senha = senha.trim();
+    login = String(login).trim().toLowerCase();
+    senha = String(senha).trim();
 
     const isEmail = login.includes("@");
 
-    const user = await User.findOne(
-      isEmail ? { email: login } : { funcional: Number(login) }
-    );
+    let query;
+
+    if (isEmail) {
+      query = { email: login };
+    } else {
+      const funcional = parseInt(login, 10);
+
+      if (Number.isNaN(funcional)) {
+        return res.status(400).json({ message: "Número funcional inválido" });
+      }
+
+      query = { funcional };
+    }
+
+    const user = await User.findOne(query);
 
     console.log("LOGIN RECEBIDO:", login);
     console.log("USUÁRIO ENCONTRADO:", !!user);
@@ -32,6 +43,7 @@ exports.login = async (req, res) => {
     }
 
     const senhaValida = await bcrypt.compare(senha, user.senha);
+
     if (!senhaValida) {
       return res.status(401).json({ message: "Senha inválida" });
     }
@@ -41,12 +53,16 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        id: user._id,
+        role: user.role,
+        funcao: user.funcao || ""
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    res.json({
+    return res.json({
       token,
       user: {
         id: user._id,
@@ -54,13 +70,14 @@ exports.login = async (req, res) => {
         funcional: user.funcional,
         role: user.role,
         patente: user.patente,
+        funcao: user.funcao || "",
         status: user.status,
-        senhaPadrao: !!user.senhaPadrao // 🔑 GARANTIA
+        senhaPadrao: !!user.senhaPadrao
       }
     });
   } catch (error) {
     console.error("❌ Erro no login:", error);
-    res.status(500).json({ message: "Erro interno no login" });
+    return res.status(500).json({ message: "Erro interno no login" });
   }
 };
 
@@ -75,35 +92,32 @@ exports.changePassword = async (req, res) => {
     const hash = await bcrypt.hash(senha, 10);
 
     req.user.senha = hash;
-    req.user.senhaPadrao = false; // 🔑 DESATIVA PRIMEIRO LOGIN
+    req.user.senhaPadrao = false;
     await req.user.save();
 
-    res.json({ message: "Senha alterada com sucesso" });
+    return res.json({ message: "Senha alterada com sucesso" });
   } catch (err) {
     console.error("Erro ao trocar senha:", err);
-    res.status(500).json({ message: "Erro ao trocar senha" });
+    return res.status(500).json({ message: "Erro ao trocar senha" });
   }
 };
 
-// ============================
-// 🔍 USUÁRIO LOGADO (REIDRATAÇÃO)
-// ============================
 exports.me = async (req, res) => {
   try {
     const user = req.user;
 
-    res.json({
+    return res.json({
       id: user._id,
       nome: user.nome,
       funcional: user.funcional,
       role: user.role,
       patente: user.patente,
+      funcao: user.funcao || "",
       status: user.status,
       senhaPadrao: !!user.senhaPadrao
     });
   } catch (error) {
-    res.status(500).json({ message: "Erro ao buscar usuário logado" });
+    console.error("Erro ao buscar usuário logado:", error);
+    return res.status(500).json({ message: "Erro ao buscar usuário logado" });
   }
 };
-
-

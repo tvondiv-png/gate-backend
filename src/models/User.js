@@ -29,13 +29,23 @@ const UserSchema = new mongoose.Schema(
       default: true
     },
 
+    // 🔥 NOVO ROLE
     role: {
       type: String,
-      enum: ["user", "admin", "superadmin"],
+      enum: ["user", "admin", "comando", "superadmin"],
       default: "user"
     },
 
-    // ===== HIERARQUIA =====
+    resetAcoesPorPromocao: {
+  type: Boolean,
+  default: false
+},
+
+dataResetAcoesPorPromocao: {
+  type: Date,
+  default: null
+},
+
     categoriaHierarquia: {
       type: String,
       enum: [
@@ -54,13 +64,8 @@ const UserSchema = new mongoose.Schema(
           .toUpperCase()
     },
 
-    patente: {
-      type: String
-    },
-
-    funcao: {
-      type: String
-    },
+    patente: String,
+    funcao: String,
 
     status: {
       type: String,
@@ -69,18 +74,21 @@ const UserSchema = new mongoose.Schema(
     },
 
     dataEntrada: {
-      type: Date
-    },
+  type: Date,
+  default: null
+},
 
-    dataUltimaPromocao: {
-      type: Date
-    },
+dataUltimaPromocao: {
+  type: Date,
+  default: null
+},
 
-    cursos: [
-      {
-        type: String
-      }
-    ],
+medalhas: {
+  type: [String],
+  default: []
+},
+
+    cursos: [String],
 
     ativo: {
       type: Boolean,

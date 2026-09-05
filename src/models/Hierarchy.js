@@ -45,6 +45,20 @@ const HierarchySchema = new mongoose.Schema(
       default: "Operacional"
     },
 
+    /* =====================================================
+       QUALIFICAÇÃO ROCAM
+       Campo separado da patente e da função
+    ===================================================== */
+    qualificacaoRocam: {
+      type: String,
+      enum: [
+        "NENHUM",
+        "ESTAGIARIO_ROCAM",
+        "BRACAL_ROCAM"
+      ],
+      default: "NENHUM"
+    },
+
     cursos: {
       type: [String],
       default: []
@@ -52,7 +66,11 @@ const HierarchySchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Ativo", "Ausente", "Afastado"],
+      enum: [
+        "Ativo",
+        "Ausente",
+        "Afastado"
+      ],
       default: "Ativo"
     },
 
@@ -64,21 +82,26 @@ const HierarchySchema = new mongoose.Schema(
         "Láurea do Mérito Pessoal – 3º Grau",
         "Láurea do Mérito Pessoal – 2º Grau",
         "Láurea do Mérito Pessoal – 1º Grau"
-        ],
-        default: []
+      ],
+      default: []
     },
 
     dataEntrada: {
       type: Date,
-      default: Date.now
+      default: null
     },
 
-    ultimaPromocao: {
+    dataUltimaPromocao: {
       type: Date,
-      default: Date.now
+      default: null
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 );
 
-module.exports = mongoose.model("Hierarchy", HierarchySchema);
+module.exports = mongoose.model(
+  "Hierarchy",
+  HierarchySchema
+);

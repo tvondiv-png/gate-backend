@@ -16,6 +16,12 @@ router.get(
   controller.listPendentes
 );
 
+router.get(
+  "/ativos",
+  protect(["admin", "superadmin"]),
+  controller.listAtivos
+);
+
 router.post(
   "/aprovar/:id",
   protect(["admin", "superadmin"]),
@@ -28,6 +34,18 @@ router.post(
   controller.rejeitar
 );
 
+router.put(
+  "/:id/editar-horario-manual",
+  protect(["admin", "superadmin"]),
+  controller.editarHorarioManual
+);
+
+router.put(
+  "/:id/encerrar-manual",
+  protect(["admin", "superadmin"]),
+  controller.encerrarRSOManualmente
+);
+
 // ======================
 // HORAS DE PATRULHA
 // ======================
@@ -35,7 +53,7 @@ router.get(
   "/horas",
   protect(["admin", "superadmin"]),
   async (req, res) => {
-    await syncAllFromHierarchy(); // 🔗 sincroniza com hierarquia ADM
+    await syncAllFromHierarchy();
     res.json(await hoursService.listar());
   }
 );
@@ -61,8 +79,6 @@ router.post(
 // ======================
 // HISTÓRICO DE RSO
 // ======================
-
-// listar histórico (admin e superadmin)
 router.get(
   "/historico",
   protect(["admin", "superadmin"]),
@@ -75,7 +91,6 @@ router.get(
   }
 );
 
-    // 🔴 apagar TODO o histórico (somente superadmin)
 router.delete(
   "/historico",
   protect(["superadmin"]),
@@ -84,7 +99,5 @@ router.delete(
     res.json({ message: "Histórico de RSO apagado" });
   }
 );
-
-
 
 module.exports = router;

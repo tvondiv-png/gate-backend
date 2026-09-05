@@ -1,7 +1,6 @@
 const HomeStats = require("../models/HomeStats");
 const PatrolHours = require("../models/PatrolHours");
 
-// garante documento único
 const getStats = async () => {
   let stats = await HomeStats.findOne();
   if (!stats) {
@@ -10,7 +9,6 @@ const getStats = async () => {
   return stats;
 };
 
-// 🔹 soma apreensões (somente RSO VALIDADO)
 exports.somarApreensoes = async (apreensoes) => {
   const stats = await getStats();
 
@@ -23,13 +21,12 @@ exports.somarApreensoes = async (apreensoes) => {
   await stats.save();
 };
 
-// 🔹 calcula policial destaque (mensal)
 exports.calcularPolicialDestaque = async () => {
   const agora = new Date();
   const mes = agora.getMonth();
   const ano = agora.getFullYear();
 
-  const ranking = await PatrolHours.find().sort({ horasMensais: -1 });
+  const ranking = await PatrolHours.find().sort({ horasMesMin: -1 });
 
   if (!ranking.length) return;
 
@@ -40,7 +37,7 @@ exports.calcularPolicialDestaque = async () => {
     funcional: top.funcional,
     nome: top.nome,
     patente: top.patente,
-    horasMensais: top.horasMensais,
+    horasMensais: top.horasMesMin,
     mes,
     ano
   };

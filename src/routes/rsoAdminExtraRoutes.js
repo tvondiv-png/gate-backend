@@ -18,13 +18,28 @@ const isAdmin = (req, res, next) => {
 };
 
 // 📌 RSOs ATIVOS (ESPELHO)
-router.get("/ativos", protect, isAdmin, listarAtivos);
+router.get(
+  "/ativos",
+  protect(["admin", "superadmin"]),
+  isAdmin,
+  listarAtivos
+);
 
 // 🔒 ENCERRAR RSO ATIVO
-router.put("/:id/encerrar", protect, isAdmin, encerrarAtivo);
+router.put(
+  "/:id/encerrar",
+  protect(["admin", "superadmin"]),
+  isAdmin,
+  encerrarAtivo
+);
 
 // 🗑️ APAGAR RSO DO HISTÓRICO
-router.delete("/:id", protect, isAdmin, apagarRSO);
+router.delete(
+  "/:id",
+  protect(["admin", "superadmin"]),
+  isAdmin,
+  apagarRSO
+);
 
 const { apagarHistoricoRSO } = require("../controllers/rsoAdminExtraController");
 

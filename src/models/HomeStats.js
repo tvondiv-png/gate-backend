@@ -17,6 +17,20 @@ const HomeStatsSchema = new mongoose.Schema(
       horasMensais: Number,
       mes: Number,
       ano: Number
+    },
+
+    // 🔥 COMANDO INSTITUCIONAL
+    comando: {
+      comandante: {
+        nome: { type: String, default: "" },
+        patente: { type: String, default: "" },
+        foto: { type: String, default: "" }
+      },
+      subcomandante: {
+        nome: { type: String, default: "" },
+        patente: { type: String, default: "" },
+        foto: { type: String, default: "" }
+      }
     }
   },
   { timestamps: true }
