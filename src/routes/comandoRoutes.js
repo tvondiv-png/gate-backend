@@ -4,6 +4,7 @@ const router = express.Router();
 
 const controller = require("../controllers/comandoController");
 const metaController = require("../controllers/comandoMetaController");
+const graficosController = require("../controllers/comandoGraficosController");
 
 const {
   protect
@@ -86,6 +87,13 @@ router.get(
   protect(autenticados),
   onlyComando,
   metaController.dashboardExtra
+);
+
+router.get(
+  "/graficos",
+  protect(autenticados),
+  onlyComando,
+  graficosController.getGraficos
 );
 
 router.get(
