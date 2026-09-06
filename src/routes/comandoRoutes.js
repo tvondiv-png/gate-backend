@@ -82,6 +82,13 @@ router.post(
 ========================================================= */
 
 router.get(
+  "/dashboard-extra",
+  protect(autenticados),
+  onlyComando,
+  metaController.dashboardExtra
+);
+
+router.get(
   "/metas",
   protect(autenticados),
   onlyComando,
