@@ -11,6 +11,9 @@ const evaluationController =
 const communicationController =
   require("../controllers/rocamCommunicationController");
 
+const dashboardController =
+  require("../controllers/rocamDashboardController");
+
 const {
   protect
 } =
@@ -43,6 +46,12 @@ router.get(
   "/contexto",
   onlyRocam,
   controller.getAccessContext
+);
+
+router.get(
+  "/dashboard",
+  onlyRocam,
+  dashboardController.getDashboard
 );
 
 router.get(
