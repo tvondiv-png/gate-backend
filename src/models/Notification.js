@@ -25,6 +25,7 @@ const NotificationSchema = new mongoose.Schema(
       type: String,
       enum: [
         "GERAL",
+        "META_COMANDO",
         "DISCIPLINA_ABERTURA",
         "DISCIPLINA_COMENTARIO",
         "DISCIPLINA_CONVOCACAO",

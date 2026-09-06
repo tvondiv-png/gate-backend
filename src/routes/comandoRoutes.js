@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const controller = require("../controllers/comandoController");
+const metaController = require("../controllers/comandoMetaController");
 
 const {
   protect
@@ -74,6 +75,38 @@ router.post(
   protect(autenticados),
   onlyComando,
   controller.alertarZeroHoras
+);
+
+/* =========================================================
+   METAS DO COMANDO
+========================================================= */
+
+router.get(
+  "/metas",
+  protect(autenticados),
+  onlyComando,
+  metaController.listarMetas
+);
+
+router.post(
+  "/metas",
+  protect(autenticados),
+  onlyComando,
+  metaController.criarMeta
+);
+
+router.get(
+  "/metas/:id",
+  protect(autenticados),
+  onlyComando,
+  metaController.detalharMeta
+);
+
+router.delete(
+  "/metas/:id",
+  protect(autenticados),
+  onlyComando,
+  metaController.excluirMeta
 );
 
 module.exports = router;
