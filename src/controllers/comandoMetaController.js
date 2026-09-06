@@ -3,6 +3,8 @@ const User = require("../models/User");
 const PatrolHours = require("../models/PatrolHours");
 const Action = require("../models/Action");
 const Notification = require("../models/Notification");
+const Log = require("../models/Log");
+const Advertencia = require("../models/Advertencia");
 
 /* =========================================================
    HELPERS
@@ -356,6 +358,74 @@ exports.minhasMetas = async (req, res) => {
   } catch (err) {
     console.error("Erro minhasMetas:", err);
     return res.status(500).json({ message: "Erro ao carregar suas metas" });
+  }
+};
+
+/* =========================================================
+   COMANDO — RESUMO PARA O DASHBOARD ESTRATÉGICO
+   (metas + briefing das últimas 24h)
+========================================================= */
+exports.dashboardExtra = async (req, res) => {
+  try {
+    await expirarVencidas();
+
+    const metas = await ComandoMeta.find().sort({ createdAt: -1 }).lean();
+
+    let somaMedio = 0;
+    let comResumo = 0;
+    for (const meta of metas) {
+      const afetados = await User.find(filtroUsuarios(meta))
+        .select("_id funcional")
+        .lean();
+      if (afetados.length === 0) continue;
+      const prog = await progressoLote(meta, afetados);
+      let soma = 0;
+      for (const u of afetados) soma += prog.get(String(u._id))?.percentual || 0;
+      somaMedio += Math.round(soma / afetados.length);
+      comResumo++;
+    }
+
+    const desde = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const [acoesAprovadas, advertencias, eventos] = await Promise.all([
+      Action.countDocuments({
+        status: "APROVADA",
+        excluidoHistorico: false,
+        aprovadoEm: { $gte: desde }
+      }),
+      Advertencia.countDocuments({ createdAt: { $gte: desde } }),
+      Log.find({ createdAt: { $gte: desde } })
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .populate("usuario", "nome patente")
+        .lean()
+    ]);
+
+    return res.json({
+      metas: {
+        total: metas.length,
+        ativas: metas.filter((m) => m.ativa).length,
+        expiradas: metas.filter((m) => m.expirada).length,
+        atingimentoMedio: comResumo > 0 ? Math.round(somaMedio / comResumo) : 0
+      },
+      briefing: {
+        desde,
+        acoesAprovadas,
+        advertencias,
+        eventos: eventos.map((e) => ({
+          acao: e.acao,
+          modulo: e.modulo,
+          detalhes: e.detalhes || "",
+          quem: e.usuario
+            ? `${e.usuario.patente || ""} ${e.usuario.nome || ""}`.trim()
+            : "-",
+          data: e.createdAt
+        }))
+      }
+    });
+  } catch (err) {
+    console.error("Erro dashboardExtra:", err);
+    return res.status(500).json({ message: "Erro ao carregar o resumo do comando" });
   }
 };
 
