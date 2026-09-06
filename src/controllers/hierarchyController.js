@@ -1,5 +1,6 @@
 const Hierarchy = require("../models/Hierarchy");
 const User = require("../models/User");
+const RocamProfile = require("../models/RocamProfile");
 const hierarchyRules = require("../utils/hierarchyRules");
 const logAction = require("../utils/logAction");
 
@@ -424,9 +425,11 @@ exports.getHierarchyPublicList =
 /* ==========================
    ROCAM – HIERARQUIA PÚBLICA
 
-   Retorna SOMENTE:
-   - BRAÇAL ROCAM
-   - ESTAGIÁRIO ROCAM
+   Retorna:
+   - COMANDO ROCAM      (de RocamProfile)
+   - SUBCOMANDO ROCAM   (de RocamProfile)
+   - BRAÇAL ROCAM       (de Hierarchy.qualificacaoRocam)
+   - ESTAGIÁRIO ROCAM   (de Hierarchy.qualificacaoRocam)
 ========================== */
 exports.getHierarchyRocam =
   async (req, res) => {
@@ -474,9 +477,75 @@ exports.getHierarchyRocam =
           )
         );
 
+      /* Comando e Subcomando vêm do módulo ROCAM (RocamProfile). */
+      const profilesLideranca =
+        await RocamProfile.find({
+          ativo: true,
+          papelRocam: {
+            $in: [
+              "COMANDO_ROCAM",
+              "SUBCOMANDO_ROCAM"
+            ]
+          }
+        })
+          .select(
+            "funcional nome patente papelRocam situacaoRocam dataIngressoRocam"
+          )
+          .lean();
+
+      const mapProfile = (p) => ({
+        _id: p._id,
+        funcional: p.funcional,
+        nome: p.nome,
+        patente: p.patente,
+        funcao:
+          p.papelRocam === "COMANDO_ROCAM"
+            ? "Comando ROCAM"
+            : "Subcomando ROCAM",
+        status: p.situacaoRocam || "ATIVO",
+        situacaoRocam: p.situacaoRocam || "ATIVO",
+        dataIngressoRocam: p.dataIngressoRocam || null
+      });
+
+      const comando =
+        ordenarPoliciais(
+          profilesLideranca
+            .filter(
+              (p) =>
+                p.papelRocam ===
+                "COMANDO_ROCAM"
+            )
+            .map(mapProfile)
+        );
+
+      const subcomando =
+        ordenarPoliciais(
+          profilesLideranca
+            .filter(
+              (p) =>
+                p.papelRocam ===
+                "SUBCOMANDO_ROCAM"
+            )
+            .map(mapProfile)
+        );
+
       return res.json({
         total:
-          hierarchy.length,
+          hierarchy.length +
+          comando.length +
+          subcomando.length,
+
+        comando: {
+          titulo: "Comando ROCAM",
+          total: comando.length,
+          membros: comando
+        },
+
+        subcomando: {
+          titulo: "Subcomando ROCAM",
+          total: subcomando.length,
+          membros: subcomando
+        },
 
         bracais: {
           titulo:
