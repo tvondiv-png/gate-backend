@@ -2,6 +2,9 @@ const User = require("../models/User");
 const RocamProfile = require("../models/RocamProfile");
 const RocamStage = require("../models/RocamStage");
 const RocamEvaluation = require("../models/RocamEvaluation");
+const {
+  aplicarRecalculoStage
+} = require("./rocamController");
 
 /* =========================================================
    CONFIGURAÇÃO
@@ -17,6 +20,12 @@ const STATUS_ESTAGIO_ABERTO = [
    AUXILIAR — VERIFICAR QUEM PODE AVALIAR
 ========================================================= */
 
+const PAPEIS_AVALIADORES = [
+  "BRACAL_ROCAM",
+  "COMANDO_ROCAM",
+  "SUBCOMANDO_ROCAM"
+];
+
 function podeAvaliar(req) {
   /*
     Superadmin pode entrar para testes/supervisão.
@@ -27,10 +36,16 @@ function podeAvaliar(req) {
     return true;
   }
 
+  /*
+    Comando e Subcomando ROCAM também possuem a
+    qualificação de Braçal ROCAM (ver rocamController.js),
+    então também podem avaliar estagiários.
+  */
   return (
     req.rocamProfile?.ativo === true &&
-    req.rocamProfile?.papelRocam ===
-      "BRACAL_ROCAM"
+    PAPEIS_AVALIADORES.includes(
+      req.rocamProfile?.papelRocam
+    )
   );
 }
 
@@ -802,7 +817,9 @@ exports.validateEvaluation = async (
       stage.progresso.mediaAvaliacoes =
         media;
 
-      await stage.save();
+      await aplicarRecalculoStage(
+        stage
+      );
     }
 
     return res.json({

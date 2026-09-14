@@ -346,6 +346,44 @@ function calcularSituacaoEstagio(stage) {
   };
 }
 
+exports.calcularSituacaoEstagio =
+  calcularSituacaoEstagio;
+
+/*
+  Aplica o cálculo de situação num RocamStage (percentual
+  geral + transição automática de status) e salva. Usado
+  tanto pelo endpoint de recálculo manual quanto por outros
+  controllers (ex: ao validar uma avaliação) para manter o
+  progresso sempre em dia, sem duplicar essa lógica.
+*/
+async function aplicarRecalculoStage(stage) {
+  const situacao =
+    calcularSituacaoEstagio(stage);
+
+  if (!stage.progresso) {
+    stage.progresso = {};
+  }
+
+  stage.progresso.percentualGeral =
+    situacao.percentualGeral;
+
+  if (situacao.apto === true) {
+    stage.status = "APTO_APROVACAO";
+  } else if (
+    stage.status === "APTO_APROVACAO"
+  ) {
+    stage.status = "EM_ANDAMENTO";
+  }
+
+  stage.markModified("progresso");
+  await stage.save();
+
+  return situacao;
+}
+
+exports.aplicarRecalculoStage =
+  aplicarRecalculoStage;
+
 /* =========================================================
    CONFIGURAÇÕES
 ========================================================= */
@@ -1237,6 +1275,19 @@ exports.approveStage = async (req, res) => {
       });
     }
 
+    const situacao =
+      calcularSituacaoEstagio(
+        stage
+      );
+
+    if (!situacao.apto) {
+      return res.status(400).json({
+        message:
+          "Estagiário ainda não cumpriu todos os critérios do estágio",
+        situacao
+      });
+    }
+
     const agora =
       new Date();
 
@@ -1422,6 +1473,54 @@ exports.assignRole = async (req, res) => {
       dataValidaOuAgora(
         dataIngresso
       );
+
+    /* =====================================================
+       RETIRAR TITULAR ANTERIOR (COMANDO/SUBCOMANDO)
+
+       Só pode haver um Comandante e um Subcomandante ROCAM
+       ativos por vez. Ao designar alguém novo para esses
+       cargos, quem ocupava antes é rebaixado a Braçal ROCAM
+       (continua na ROCAM, só perde o cargo de comando).
+    ===================================================== */
+
+    if (
+      [
+        "COMANDO_ROCAM",
+        "SUBCOMANDO_ROCAM"
+      ].includes(papelRocam)
+    ) {
+      const titularAnterior =
+        await RocamProfile.findOne({
+          user: { $ne: hierarchy.user },
+          papelRocam,
+          ativo: true
+        });
+
+      if (titularAnterior) {
+        const papelRetirado =
+          titularAnterior.papelRocam;
+
+        titularAnterior.papelRocam =
+          "BRACAL_ROCAM";
+
+        titularAnterior.atualizadoPor =
+          req.user.id;
+
+        await titularAnterior.save();
+
+        await RocamHistory.create({
+          user: titularAnterior.user,
+          funcional: titularAnterior.funcional,
+          evento: "ALTERACAO_FUNCAO_ROCAM",
+          titulo: "Substituído no cargo de comando ROCAM",
+          descricao: `Substituído(a) por nova designação para ${papelRocam === "COMANDO_ROCAM" ? "Comandante" : "Subcomandante"} ROCAM.`,
+          papelAnterior: papelRetirado,
+          papelNovo: "BRACAL_ROCAM",
+          dataEvento: new Date(),
+          responsavel: req.user.id
+        });
+      }
+    }
 
     /* =====================================================
        LOCALIZAR PERFIL ROCAM
@@ -2622,56 +2721,13 @@ exports.recalculateStage = async (req, res) => {
     }
 
     /* =====================================================
-       CALCULAR
+       CALCULAR, ATUALIZAR STATUS E SALVAR
     ===================================================== */
 
     const situacao =
-      calcularSituacaoEstagio(
+      await aplicarRecalculoStage(
         stage
       );
-
-    /* =====================================================
-       GARANTIR PROGRESSO
-    ===================================================== */
-
-    if (!stage.progresso) {
-      stage.progresso = {};
-    }
-
-    stage.progresso.percentualGeral =
-      situacao.percentualGeral;
-
-    /* =====================================================
-       STATUS AUTOMÁTICO
-    ===================================================== */
-
-    if (
-      situacao.apto === true
-    ) {
-      stage.status =
-        "APTO_APROVACAO";
-    } else if (
-      stage.status ===
-      "APTO_APROVACAO"
-    ) {
-      /*
-        Se alguma meta foi alterada e
-        deixou de ser cumprida, volta
-        para EM_ANDAMENTO.
-      */
-      stage.status =
-        "EM_ANDAMENTO";
-    }
-
-    /* =====================================================
-       SALVAR
-    ===================================================== */
-
-    stage.markModified(
-      "progresso"
-    );
-
-    await stage.save();
 
     /* =====================================================
        RETORNO
