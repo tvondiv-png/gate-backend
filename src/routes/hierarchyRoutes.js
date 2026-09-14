@@ -18,6 +18,8 @@ const {
   protect
 } = require("../middlewares/authMiddleware");
 
+const adminOuComando = require("../middlewares/adminOuComando");
+
 /* =========================================================
    USUÁRIO LOGADO — MINHA HIERARQUIA
 ========================================================= */
@@ -72,9 +74,12 @@ router.get(
 router.get(
   "/",
   protect([
+    "user",
     "admin",
+    "comando",
     "superadmin"
   ]),
+  adminOuComando,
   listHierarchy
 );
 

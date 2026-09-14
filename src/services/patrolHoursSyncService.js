@@ -19,8 +19,8 @@ const syncFromHierarchy = async (hierarchy) => {
       nome,
       patente,
       status,
-      horasSemanais: 0,
-      horasMensais: 0
+      horasSemanaMin: 0,
+      horasMesMin: 0
     });
   } else {
     registro.nome = nome;

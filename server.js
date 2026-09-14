@@ -1,6 +1,14 @@
 require("dotenv").config();
 console.log("🚨 SERVER.JS CARREGADO");
 
+// Rede de segurança: um erro não tratado num endpoint não pode
+// derrubar o processo inteiro e tirar o site do ar para todo mundo.
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+});
 
 const mongoose = require("mongoose");
 const app = require("./src/app");

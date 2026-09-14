@@ -1234,45 +1234,50 @@ exports.adicionarApreensao =
 
 exports.atualizarObservacoesAtivo =
   async (req, res) => {
-    const { id } =
-      req.params;
+    try {
+      const { id } =
+        req.params;
 
-    const {
-      observacoes
-    } = req.body;
+      const {
+        observacoes
+      } = req.body;
 
-    const rso =
-      await RSO.findById(
-        id
-      );
+      const rso =
+        await RSO.findById(
+          id
+        );
 
-    if (!rso) {
-      return res
-        .status(404)
-        .json({
-          message:
-            "RSO não encontrado"
-        });
+      if (!rso) {
+        return res
+          .status(404)
+          .json({
+            message:
+              "RSO não encontrado"
+          });
+      }
+
+      if (
+        rso.status !==
+        "Ativo"
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "Observações só podem ser alteradas com RSO ativo"
+          });
+      }
+
+      rso.observacoes =
+        observacoes || "";
+
+      await rso.save();
+
+      return res.json(rso);
+    } catch (err) {
+      console.error("Erro ao atualizar observações:", err);
+      return res.status(500).json({ message: "Erro ao atualizar observações" });
     }
-
-    if (
-      rso.status !==
-      "Ativo"
-    ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Observações só podem ser alteradas com RSO ativo"
-        });
-    }
-
-    rso.observacoes =
-      observacoes || "";
-
-    await rso.save();
-
-    return res.json(rso);
   };
 
 /* =========================================================
@@ -1549,60 +1554,65 @@ exports.encerrarRSO =
 
 exports.editarRSORejeitado =
   async (req, res) => {
-    const { id } =
-      req.params;
+    try {
+      const { id } =
+        req.params;
 
-    const {
-      observacoes,
-      apreensoes
-    } = req.body;
-
-    const rso =
-      await RSO.findById(
-        id
-      );
-
-    if (!rso) {
-      return res
-        .status(404)
-        .json({
-          message:
-            "RSO não encontrado"
-        });
-    }
-
-    if (
-      rso.status !==
-      "Rejeitado"
-    ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Somente RSO rejeitado pode ser editado"
-        });
-    }
-
-    if (
-      observacoes !==
-      undefined
-    ) {
-      rso.observacoes =
-        observacoes;
-    }
-
-    if (
-      Array.isArray(
+      const {
+        observacoes,
         apreensoes
-      )
-    ) {
-      rso.apreensoes =
-        apreensoes;
+      } = req.body;
+
+      const rso =
+        await RSO.findById(
+          id
+        );
+
+      if (!rso) {
+        return res
+          .status(404)
+          .json({
+            message:
+              "RSO não encontrado"
+          });
+      }
+
+      if (
+        rso.status !==
+        "Rejeitado"
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "Somente RSO rejeitado pode ser editado"
+          });
+      }
+
+      if (
+        observacoes !==
+        undefined
+      ) {
+        rso.observacoes =
+          observacoes;
+      }
+
+      if (
+        Array.isArray(
+          apreensoes
+        )
+      ) {
+        rso.apreensoes =
+          apreensoes;
+      }
+
+      await rso.save();
+
+      return res.json(rso);
+    } catch (err) {
+      console.error("Erro ao editar RSO rejeitado:", err);
+      return res.status(500).json({ message: "Erro ao editar RSO" });
     }
-
-    await rso.save();
-
-    return res.json(rso);
   };
 
 /* =========================================================
@@ -1611,36 +1621,41 @@ exports.editarRSORejeitado =
 
 exports.reenviarRSO =
   async (req, res) => {
-    const rso =
-      await RSO.findById(
-        req.params.id
-      );
+    try {
+      const rso =
+        await RSO.findById(
+          req.params.id
+        );
 
-    if (
-      !rso ||
-      rso.status !==
-        "Rejeitado"
-    ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "RSO inválido"
-        });
+      if (
+        !rso ||
+        rso.status !==
+          "Rejeitado"
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "RSO inválido"
+          });
+      }
+
+      rso.status =
+        "Pendente";
+
+      rso.comentarioADM =
+        "";
+
+      await rso.save();
+
+      return res.json({
+        message:
+          "RSO reenviado para aprovação"
+      });
+    } catch (err) {
+      console.error("Erro ao reenviar RSO:", err);
+      return res.status(500).json({ message: "Erro ao reenviar RSO" });
     }
-
-    rso.status =
-      "Pendente";
-
-    rso.comentarioADM =
-      "";
-
-    await rso.save();
-
-    return res.json({
-      message:
-        "RSO reenviado para aprovação"
-    });
   };
 
 /* =========================================================
@@ -1649,34 +1664,39 @@ exports.reenviarRSO =
 
 exports.excluirMeuRSO =
   async (req, res) => {
-    const rso =
-      await RSO.findById(
-        req.params.id
-      );
+    try {
+      const rso =
+        await RSO.findById(
+          req.params.id
+        );
 
-    if (
-      !rso ||
-      [
-        "Ativo",
-        "Pendente"
-      ].includes(
-        rso.status
-      )
-    ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Não pode excluir este RSO"
-        });
+      if (
+        !rso ||
+        [
+          "Ativo",
+          "Pendente"
+        ].includes(
+          rso.status
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "Não pode excluir este RSO"
+          });
+      }
+
+      await rso.deleteOne();
+
+      return res.json({
+        message:
+          "RSO excluído"
+      });
+    } catch (err) {
+      console.error("Erro ao excluir RSO:", err);
+      return res.status(500).json({ message: "Erro ao excluir RSO" });
     }
-
-    await rso.deleteOne();
-
-    return res.json({
-      message:
-        "RSO excluído"
-    });
   };
 
 /* =========================================================
@@ -1686,46 +1706,51 @@ exports.excluirMeuRSO =
 
 exports.atualizarObservacoes =
   async (req, res) => {
-    const { id } =
-      req.params;
+    try {
+      const { id } =
+        req.params;
 
-    const {
-      observacoes
-    } = req.body;
+      const {
+        observacoes
+      } = req.body;
 
-    const rso =
-      await RSO.findById(
-        id
-      );
+      const rso =
+        await RSO.findById(
+          id
+        );
 
-    if (!rso) {
-      return res
-        .status(404)
-        .json({
-          message:
-            "RSO não encontrado"
-        });
+      if (!rso) {
+        return res
+          .status(404)
+          .json({
+            message:
+              "RSO não encontrado"
+          });
+      }
+
+      if (
+        rso.status !==
+        "Ativo"
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "Observações só podem ser alteradas com RSO ativo"
+          });
+      }
+
+      rso.observacoes =
+        observacoes || "";
+
+      await rso.save();
+
+      return res.json({
+        message:
+          "Observações atualizadas"
+      });
+    } catch (err) {
+      console.error("Erro ao atualizar observações:", err);
+      return res.status(500).json({ message: "Erro ao atualizar observações" });
     }
-
-    if (
-      rso.status !==
-      "Ativo"
-    ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Observações só podem ser alteradas com RSO ativo"
-        });
-    }
-
-    rso.observacoes =
-      observacoes || "";
-
-    await rso.save();
-
-    return res.json({
-      message:
-        "Observações atualizadas"
-    });
   };

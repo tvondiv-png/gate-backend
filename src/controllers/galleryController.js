@@ -45,9 +45,17 @@ exports.create = async (req, res) => {
 
 // Editar (texto apenas)
 exports.update = async (req, res) => {
-  const { id } = req.params;
-  const item = await Gallery.findByIdAndUpdate(id, req.body, { new: true });
-  res.json(item);
+  try {
+    const { id } = req.params;
+    const item = await Gallery.findByIdAndUpdate(id, req.body, { new: true });
+    if (!item) {
+      return res.status(404).json({ message: "Imagem não encontrada" });
+    }
+    res.json(item);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao editar imagem" });
+  }
 };
 
 // ❌ EXCLUIR (REMOVE DO ADMIN E DO PÚBLICO)

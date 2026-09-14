@@ -2,9 +2,17 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/patrolHoursController");
 const { protect } = require("../middlewares/authMiddleware");
+const adminOuComando = require("../middlewares/adminOuComando");
 
 // ===== LISTAGEM =====
-router.get("/", protect(["admin", "superadmin"]), controller.listAll);
+// admin/superadmin (Painel ADM) OU Comando/Subcomando do Batalhão
+// (Painel de Comando, que autoriza por função e não só por role)
+router.get(
+  "/",
+  protect(["user", "admin", "comando", "superadmin"]),
+  adminOuComando,
+  controller.listAll
+);
 router.get("/filters", protect(["admin", "superadmin"]), controller.getFilters);
 router.get("/report", protect(["admin", "superadmin"]), controller.getReport);
 

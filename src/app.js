@@ -387,4 +387,13 @@ app.get(
   }
 );
 
+// Handler de erro global — precisa ser o último app.use().
+// Garante uma resposta 500 (em vez de a conexão travar) para
+// qualquer erro que chegue aqui via next(err).
+app.use((err, req, res, next) => {
+  console.error("❌ Erro não tratado:", err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ message: "Erro interno no servidor" });
+});
+
 module.exports = app;
