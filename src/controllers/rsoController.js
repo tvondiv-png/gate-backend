@@ -447,6 +447,21 @@ exports.abrirRSO = async (
     }
 
     /*
+      Também não pode abrir um novo RSO se já estiver, como
+      integrante, em algum RSO ativo de outra pessoa.
+    */
+    if (
+      await policialEmRSOAtivo(
+        req.user.funcional
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Você já está em um RSO ativo. Saia dele antes de abrir outro."
+      });
+    }
+
+    /*
      * =====================================================
      * NOVO MODELO
      * =====================================================
