@@ -1562,7 +1562,7 @@ exports.assignRole = async (req, res) => {
     ===================================================== */
 
     let evento =
-      "ALTERACAO_FUNCAO";
+      "ALTERACAO_FUNCAO_ROCAM";
 
     if (
       papelRocam ===
