@@ -425,6 +425,27 @@ exports.abrirRSO = async (
   res
 ) => {
   try {
+    /* =====================================================
+       UM RSO ATIVO POR VEZ, POR POLICIAL
+
+       Independente de como a equipe é montada, quem abre
+       o RSO (a conta logada) não pode abrir outro enquanto
+       já tiver um ativo em nome dela.
+    ===================================================== */
+
+    const jaTemRSOAtivo =
+      await RSO.findOne({
+        criadoPor: req.user.id,
+        status: "Ativo"
+      });
+
+    if (jaTemRSOAtivo) {
+      return res.status(400).json({
+        message:
+          "Você já possui um RSO ativo. Encerre-o antes de abrir outro."
+      });
+    }
+
     /*
      * =====================================================
      * NOVO MODELO
