@@ -100,6 +100,12 @@ router.patch(
   communicationController.readMessage
 );
 
+router.delete(
+  "/mensagens/:id",
+  onlyRocam,
+  communicationController.deleteMessage
+);
+
 /* =========================================================
    AVISOS
 ========================================================= */

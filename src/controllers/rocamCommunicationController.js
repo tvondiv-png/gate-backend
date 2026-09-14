@@ -228,6 +228,71 @@ exports.readMessage = async (req, res) => {
 };
 
 /* =========================================================
+   APAGAR MENSAGEM (SOFT DELETE — SÓ PARA QUEM APAGOU)
+========================================================= */
+
+exports.deleteMessage = async (req, res) => {
+  try {
+    const mensagem =
+      await RocamMessage.findById(
+        req.params.id
+      );
+
+    if (!mensagem) {
+      return res.status(404).json({
+        message:
+          "Mensagem não encontrada"
+      });
+    }
+
+    const ehRemetente =
+      String(mensagem.remetente) ===
+      String(req.user.id);
+
+    const ehDestinatario =
+      String(mensagem.destinatario) ===
+      String(req.user.id);
+
+    if (
+      !ehRemetente &&
+      !ehDestinatario
+    ) {
+      return res.status(403).json({
+        message:
+          "Você não pode apagar esta mensagem"
+      });
+    }
+
+    if (ehRemetente) {
+      mensagem.apagadaRemetente =
+        true;
+    }
+
+    if (ehDestinatario) {
+      mensagem.apagadaDestinatario =
+        true;
+    }
+
+    await mensagem.save();
+
+    return res.json({
+      message:
+        "Mensagem apagada"
+    });
+  } catch (err) {
+    console.error(
+      "Erro deleteMessage ROCAM:",
+      err
+    );
+
+    return res.status(500).json({
+      message:
+        "Erro ao apagar mensagem"
+    });
+  }
+};
+
+/* =========================================================
    AVISOS VISÍVEIS
 ========================================================= */
 
