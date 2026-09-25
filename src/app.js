@@ -184,6 +184,11 @@ app.use(
 );
 
 app.use(
+  "/api/quadro-honra",
+  require("./routes/quadroHonraRoutes")
+);
+
+app.use(
   "/api/penal-code",
   require("./routes/penalCodeRoutes")
 );

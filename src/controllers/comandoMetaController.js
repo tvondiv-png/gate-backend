@@ -5,6 +5,7 @@ const Action = require("../models/Action");
 const Notification = require("../models/Notification");
 const Log = require("../models/Log");
 const Advertencia = require("../models/Advertencia");
+const { registrarConquista } = require("../utils/conquistas");
 
 /* =========================================================
    HELPERS
@@ -339,6 +340,18 @@ exports.minhasMetas = async (req, res) => {
       const p = await progressoUsuario(meta, req.user);
       const vista = (meta.vistoPor || []).map(String).includes(uid);
       if (!vista) temNaoVista = true;
+
+      if (p.atingiu) {
+        await registrarConquista({
+          user: req.user,
+          tipo: "META_ATINGIDA",
+          titulo: `Meta batida: ${meta.titulo}`,
+          descricao: `${p.atual} de ${p.alvo} ${
+            meta.tipo === "HORAS" ? "horas" : "ações"
+          } ${meta.periodo === "MENSAL" ? "no mês" : "na semana"}.`,
+          chave: `meta:${meta._id}`
+        });
+      }
 
       lista.push({
         _id: meta._id,
