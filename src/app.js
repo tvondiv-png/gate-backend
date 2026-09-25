@@ -189,6 +189,11 @@ app.use(
 );
 
 app.use(
+  "/api/push",
+  require("./routes/pushRoutes")
+);
+
+app.use(
   "/api/penal-code",
   require("./routes/penalCodeRoutes")
 );

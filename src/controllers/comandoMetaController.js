@@ -6,6 +6,7 @@ const Notification = require("../models/Notification");
 const Log = require("../models/Log");
 const Advertencia = require("../models/Advertencia");
 const { registrarConquista } = require("../utils/conquistas");
+const { enviarPush } = require("../services/pushService");
 
 /* =========================================================
    HELPERS
@@ -204,6 +205,15 @@ exports.criarMeta = async (req, res) => {
         referenciaModelo: "ComandoMeta"
       }));
       await Notification.insertMany(docs);
+
+      enviarPush(
+        afetados.map((u) => u._id),
+        {
+          title: "🎯 Meta estabelecida pelo Comando",
+          body: `${meta.titulo} — ${meta.valorAlvo} ${unidade}`,
+          url: "/usuario"
+        }
+      ).catch((e) => console.error("Erro push meta:", e.message));
     }
 
     return res.status(201).json(meta);

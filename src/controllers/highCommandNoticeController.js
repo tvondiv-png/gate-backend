@@ -1,5 +1,6 @@
 const HighCommandNotice = require("../models/HighCommandNotice");
 const User = require("../models/User");
+const { enviarPush } = require("../services/pushService");
 
 function noticeMatchesUser(notice, user) {
   if (!notice?.ativo) return false;
@@ -53,6 +54,26 @@ exports.createNotice = async (req, res) => {
         nome: req.user.nome || ""
       }
     });
+
+    /* Push para quem o comunicado alcança */
+    try {
+      const usuarios = await User.find({ ativo: true })
+        .select("_id funcao patente funcional")
+        .lean();
+      const alvo = usuarios
+        .filter((u) => noticeMatchesUser(item, u))
+        .map((u) => u._id);
+
+      if (alvo.length > 0) {
+        await enviarPush(alvo, {
+          title: "🚨 Alerta do Alto Comando",
+          body: item.titulo,
+          url: "/usuario"
+        });
+      }
+    } catch (pushErr) {
+      console.error("Erro ao enviar push do comunicado:", pushErr.message);
+    }
 
     return res.status(201).json({
       message: "Comunicado do Alto Comando criado com sucesso",
