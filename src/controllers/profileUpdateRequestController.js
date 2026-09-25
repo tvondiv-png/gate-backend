@@ -96,6 +96,7 @@ async function notificarAdminsNovaRequisicao(request) {
 
     const notificacoes = admins.map((admin) => ({
       user: admin._id,
+      titulo: "Nova requisição cadastral",
       mensagem:
         `Nova requisição cadastral pendente: ${tipoLabel(request.tipo)}. ` +
         `Solicitante: ${request.solicitante.funcional} - ${request.solicitante.nome}.`
@@ -113,6 +114,7 @@ async function notificarPolicialStatus(request, mensagem) {
 
     await Notification.create({
       user: request.solicitante.userId,
+      titulo: "Requisição cadastral atualizada",
       mensagem
     });
   } catch (error) {

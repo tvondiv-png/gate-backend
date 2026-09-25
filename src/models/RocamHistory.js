@@ -26,6 +26,7 @@ const RocamHistorySchema = new mongoose.Schema(
         "SOLICITACAO_APROVACAO",
         "ALTERACAO_META",
         "ALTERACAO_METAS",
+        "PATRULHA_ROCAM",
         "AFASTAMENTO",
         "RETORNO",
         "SUSPENSAO",
