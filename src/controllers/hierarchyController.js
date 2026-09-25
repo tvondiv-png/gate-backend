@@ -1,8 +1,10 @@
 const Hierarchy = require("../models/Hierarchy");
 const User = require("../models/User");
 const RocamProfile = require("../models/RocamProfile");
+const PatrolHours = require("../models/PatrolHours");
 const hierarchyRules = require("../utils/hierarchyRules");
 const logAction = require("../utils/logAction");
+const { syncFromHierarchy } = require("../services/patrolHoursSyncService");
 
 /* ==========================
    NORMALIZA CATEGORIA
@@ -916,6 +918,15 @@ exports.updateHierarchy = async (
         }
       );
 
+    /*
+     * Mantém "Horas de Patrulha" em dia (nome/patente/status)
+     * assim que a hierarquia é editada, em vez de depender de
+     * um sync completo rodando em toda carga de dashboard.
+     */
+    await syncFromHierarchy(
+      hierarchyAtualizada
+    );
+
     await logAction({
       action:
         "ATUALIZAÇÃO DE HIERARQUIA",
@@ -982,6 +993,15 @@ exports.deleteHierarchy = async (
     }
 
     await hierarchy.deleteOne();
+
+    /*
+     * Remove o registro correspondente de "Horas de Patrulha" —
+     * o policial saiu da hierarquia, não faz sentido continuar
+     * aparecendo nos relatórios/rankings.
+     */
+    await PatrolHours.deleteOne({
+      funcional: hierarchy.funcional
+    });
 
     return res.json({
       message:

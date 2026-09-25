@@ -1,9 +1,10 @@
+const Hierarchy = require("../models/Hierarchy");
 const PatrolHours = require("../models/PatrolHours");
 const PatrolHoursHistory = require("../models/PatrolHoursHistory");
 const Notification = require("../models/Notification");
 const Action = require("../models/Action");
 const Conquista = require("../models/Conquista");
-const { syncAllFromHierarchy } = require("../services/patrolHoursService");
+const { syncFromHierarchy } = require("../services/patrolHoursSyncService");
 const { registrarConquista } = require("../utils/conquistas");
 
 const MINIMO_PATRULHA_SEMANAL_MIN = 360; // 6h
@@ -33,9 +34,16 @@ async function calcularSequenciaSemanas(funcional) {
 
 exports.getMyDashboard = async (req, res) => {
   try {
-    await syncAllFromHierarchy();
-
     const funcional = req.user.funcional;
+
+    /* Mantém o registro de horas deste policial em dia (nome/
+       patente/status), sem varrer a hierarquia inteira a cada
+       carregamento do dashboard — isso agora também acontece na
+       edição da hierarquia (ver hierarchyController.updateHierarchy). */
+    const hierarchyAtual = await Hierarchy.findOne({ funcional });
+    if (hierarchyAtual) {
+      await syncFromHierarchy(hierarchyAtual);
+    }
 
     const horas = await PatrolHours.findOne({ funcional });
 
