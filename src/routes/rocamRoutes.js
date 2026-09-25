@@ -14,6 +14,9 @@ const communicationController =
 const dashboardController =
   require("../controllers/rocamDashboardController");
 
+const graficosController =
+  require("../controllers/rocamGraficosController");
+
 const {
   protect
 } =
@@ -66,6 +69,18 @@ router.get(
   controller.getHierarchy
 );
 
+router.get(
+  "/contadores",
+  onlyRocam,
+  communicationController.contadores
+);
+
+router.get(
+  "/quadro-honra",
+  onlyRocam,
+  graficosController.getQuadroHonra
+);
+
 /* =========================================================
    MENSAGENS
 ========================================================= */
@@ -114,6 +129,12 @@ router.get(
   "/avisos",
   onlyRocam,
   communicationController.listNotices
+);
+
+router.post(
+  "/avisos/marcar-vistos",
+  onlyRocam,
+  communicationController.marcarAvisosVistos
 );
 
 /* =========================================================
@@ -228,6 +249,12 @@ router.patch(
   "/comando/avaliacoes/:id/devolver",
   onlyRocamCommand,
   evaluationController.returnEvaluation
+);
+
+router.get(
+  "/comando/graficos",
+  onlyRocamCommand,
+  graficosController.getGraficos
 );
 
 /* =========================================================

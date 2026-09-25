@@ -5,6 +5,10 @@ const RocamProfile = require("../models/RocamProfile");
 const RocamStage = require("../models/RocamStage");
 const RocamHistory = require("../models/RocamHistory");
 
+const {
+  enviarPush
+} = require("../services/pushService");
+
 /* =========================================================
    HELPERS — METAS ROCAM
 ========================================================= */
@@ -1378,6 +1382,18 @@ exports.approveStage = async (req, res) => {
       }
     });
 
+    enviarPush(
+      [profile.user],
+      {
+        title:
+          "🏅 Estágio ROCAM aprovado",
+        body:
+          "Você foi promovido a Braçal ROCAM. Parabéns!",
+        url:
+          "/rocam"
+      }
+    ).catch(() => {});
+
     return res.json({
       message:
         "Estágio aprovado. Policial promovido a Braçal ROCAM.",
@@ -2198,6 +2214,21 @@ exports.removeFromRocam = async (req, res) => {
       responsavel:
         req.user.id
     });
+
+    enviarPush(
+      [profile.user],
+      {
+        title:
+          papelAnterior ===
+          "BRACAL_ROCAM"
+            ? "Retirada do Braçal ROCAM"
+            : "Desligamento da ROCAM",
+        body:
+          String(motivo).trim(),
+        url:
+          "/rocam"
+      }
+    ).catch(() => {});
 
     return res.json({
       message:

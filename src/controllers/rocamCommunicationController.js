@@ -3,6 +3,47 @@ const RocamProfile = require("../models/RocamProfile");
 const RocamMessage = require("../models/RocamMessage");
 const RocamNotice = require("../models/RocamNotice");
 
+const {
+  enviarPush
+} = require("../services/pushService");
+
+/* =========================================================
+   HELPER — FILTRO DE AVISOS NÃO LIDOS
+========================================================= */
+
+function filtroAvisosVisiveis(
+  papel,
+  userId
+) {
+  const agora = new Date();
+
+  const filtroPublico =
+    papel
+      ? {
+          $or: [
+            { publico: "TODOS" },
+            { publico: papel }
+          ]
+        }
+      : { publico: "TODOS" };
+
+  return {
+    ativo: true,
+    ...filtroPublico,
+    vistoPor: {
+      $ne: userId
+    },
+    $and: [
+      {
+        $or: [
+          { expiraEm: null },
+          { expiraEm: { $gte: agora } }
+        ]
+      }
+    ]
+  };
+}
+
 /* =========================================================
    LISTAR DESTINATÁRIOS ROCAM
 ========================================================= */
@@ -164,6 +205,18 @@ exports.sendMessage = async (req, res) => {
         mensagem:
           mensagem.trim()
       });
+
+    enviarPush(
+      [destinatario],
+      {
+        title:
+          "Nova mensagem ROCAM",
+        body:
+          assunto.trim(),
+        url:
+          "/rocam/mensagens"
+      }
+    ).catch(() => {});
 
     return res.status(201).json({
       message:
@@ -395,6 +448,12 @@ exports.createNotice = async (req, res) => {
       });
     }
 
+    const publicoFinal =
+      Array.isArray(publico) &&
+      publico.length
+        ? publico
+        : ["TODOS"];
+
     const aviso =
       await RocamNotice.create({
         titulo:
@@ -408,10 +467,7 @@ exports.createNotice = async (req, res) => {
           "NORMAL",
 
         publico:
-          Array.isArray(publico) &&
-          publico.length
-            ? publico
-            : ["TODOS"],
+          publicoFinal,
 
         expiraEm:
           expiraEm
@@ -421,6 +477,43 @@ exports.createNotice = async (req, res) => {
         publicadoPor:
           req.user.id
       });
+
+    const destinatarios =
+      publicoFinal.includes(
+        "TODOS"
+      )
+        ? await RocamProfile.find({
+            ativo: true
+          })
+            .select("user")
+            .lean()
+        : await RocamProfile.find({
+            ativo: true,
+            papelRocam: {
+              $in: publicoFinal
+            }
+          })
+            .select("user")
+            .lean();
+
+    enviarPush(
+      destinatarios.map(
+        (item) => item.user
+      ),
+      {
+        title:
+          `📋 Aviso ROCAM${
+            aviso.prioridade ===
+            "URGENTE"
+              ? " • URGENTE"
+              : ""
+          }`,
+        body:
+          aviso.titulo,
+        url:
+          "/rocam/avisos"
+      }
+    ).catch(() => {});
 
     return res.status(201).json({
       message:
@@ -472,6 +565,93 @@ exports.disableNotice = async (req, res) => {
     return res.status(500).json({
       message:
         "Erro ao remover aviso"
+    });
+  }
+};
+
+/* =========================================================
+   CONTADORES — BADGE DE NÃO LIDAS
+========================================================= */
+
+exports.contadores = async (req, res) => {
+  try {
+    const profile =
+      await RocamProfile.findOne({
+        user: req.user.id,
+        ativo: true
+      }).lean();
+
+    const [
+      mensagensNaoLidas,
+      avisosNaoLidos
+    ] = await Promise.all([
+      RocamMessage.countDocuments({
+        destinatario: req.user.id,
+        lida: false,
+        apagadaDestinatario: false
+      }),
+
+      RocamNotice.countDocuments(
+        filtroAvisosVisiveis(
+          profile?.papelRocam,
+          req.user.id
+        )
+      )
+    ]);
+
+    return res.json({
+      mensagens: mensagensNaoLidas,
+      avisos: avisosNaoLidos
+    });
+  } catch (err) {
+    console.error(
+      "Erro contadores ROCAM:",
+      err
+    );
+
+    return res.status(500).json({
+      message:
+        "Erro ao carregar contadores ROCAM"
+    });
+  }
+};
+
+/* =========================================================
+   MARCAR AVISOS COMO VISTOS
+========================================================= */
+
+exports.marcarAvisosVistos = async (req, res) => {
+  try {
+    const profile =
+      await RocamProfile.findOne({
+        user: req.user.id,
+        ativo: true
+      }).lean();
+
+    await RocamNotice.updateMany(
+      filtroAvisosVisiveis(
+        profile?.papelRocam,
+        req.user.id
+      ),
+      {
+        $addToSet: {
+          vistoPor: req.user.id
+        }
+      }
+    );
+
+    return res.json({
+      message: "Avisos marcados como vistos"
+    });
+  } catch (err) {
+    console.error(
+      "Erro marcarAvisosVistos:",
+      err
+    );
+
+    return res.status(500).json({
+      message:
+        "Erro ao atualizar avisos ROCAM"
     });
   }
 };

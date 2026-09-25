@@ -6,6 +6,10 @@ const {
   aplicarRecalculoStage
 } = require("./rocamController");
 
+const {
+  enviarPush
+} = require("../services/pushService");
+
 /* =========================================================
    CONFIGURAÇÃO
 ========================================================= */
@@ -822,6 +826,18 @@ exports.validateEvaluation = async (
       );
     }
 
+    enviarPush(
+      [avaliacao.evaluatorUser],
+      {
+        title:
+          "✅ Avaliação ROCAM validada",
+        body:
+          `Avaliação de ${avaliacao.nomeEstagiario} homologada pelo Comando ROCAM.`,
+        url:
+          "/rocam/avaliacoes"
+      }
+    ).catch(() => {});
+
     return res.json({
       message:
         "Avaliação validada com sucesso",
@@ -903,6 +919,18 @@ exports.returnEvaluation = async (
       new Date();
 
     await avaliacao.save();
+
+    enviarPush(
+      [avaliacao.evaluatorUser],
+      {
+        title:
+          "↩️ Avaliação ROCAM devolvida",
+        body:
+          `${avaliacao.nomeEstagiario}: ${avaliacao.comentarioComando}`,
+        url:
+          "/rocam/avaliacoes"
+      }
+    ).catch(() => {});
 
     return res.json({
       message:

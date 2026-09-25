@@ -52,6 +52,16 @@ const RocamNoticeSchema = new mongoose.Schema(
     expiraEm: {
       type: Date,
       default: null
+    },
+
+    vistoPor: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      ],
+      default: []
     }
   },
   {
