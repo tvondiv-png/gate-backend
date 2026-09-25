@@ -5,6 +5,7 @@ const router = express.Router();
 const controller = require("../controllers/comandoController");
 const metaController = require("../controllers/comandoMetaController");
 const graficosController = require("../controllers/comandoGraficosController");
+const patrulhaAoVivoController = require("../controllers/comandoPatrulhaAoVivoController");
 
 const {
   protect
@@ -122,6 +123,17 @@ router.delete(
   protect(autenticados),
   onlyComando,
   metaController.excluirMeta
+);
+
+/* =========================================================
+   PATRULHAMENTO AO VIVO
+========================================================= */
+
+router.get(
+  "/patrulha-ao-vivo",
+  protect(autenticados),
+  onlyComando,
+  patrulhaAoVivoController.getPatrulhaAoVivo
 );
 
 module.exports = router;

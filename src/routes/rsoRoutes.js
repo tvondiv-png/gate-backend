@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/rsoController");
 const { protect } = require("../middlewares/authMiddleware");
+const { getResumoPublico } = require("../controllers/comandoPatrulhaAoVivoController");
+
+// 🔓 Público — só contadores, sem identificar ninguém
+router.get("/publico/resumo", getResumoPublico);
 
 router.get("/me", protect(["user", "admin", "superadmin"]), controller.meusRSOs);
 router.post("/", protect(["user", "admin", "superadmin"]), controller.abrirRSO);
