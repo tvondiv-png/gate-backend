@@ -194,11 +194,6 @@ app.use(
 );
 
 app.use(
-  "/api/assistente",
-  require("./routes/assistenteRoutes")
-);
-
-app.use(
   "/api/penal-code",
   require("./routes/penalCodeRoutes")
 );
