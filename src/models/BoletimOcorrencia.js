@@ -26,8 +26,18 @@ const IlicitoBoletimSchema = new mongoose.Schema(
       enum: ["Armas", "Munições", "Entorpecentes", "Ilicitos", "Valores"],
       required: true
     },
+    subtipo: { type: String, default: "" },
+    serial: { type: String, default: "" },
     quantidade: { type: String, default: "" },
     descricao: { type: String, default: "" }
+  },
+  { _id: false }
+);
+
+const LocalBoletimSchema = new mongoose.Schema(
+  {
+    rua: { type: String, required: true },
+    bairro: { type: String, required: true }
   },
   { _id: false }
 );
@@ -63,11 +73,14 @@ const BoletimOcorrenciaSchema = new mongoose.Schema(
       default: []
     },
 
-    local: {
-      rua: { type: String, required: true },
-      bairro: { type: String, required: true },
-      cidade: { type: String, default: "Anchieta" },
-      referencia: { type: String, default: "" }
+    localAbordagem: {
+      type: LocalBoletimSchema,
+      required: true
+    },
+
+    localFinalizacao: {
+      type: LocalBoletimSchema,
+      default: null
     },
 
     abordagem: {
@@ -89,7 +102,9 @@ const BoletimOcorrenciaSchema = new mongoose.Schema(
           "PRESO",
           "LIBERADO",
           "CONDUZIDO_DELEGACIA",
-          "ENCAMINHADO_HOSPITAL"
+          "HOSPITAL_PRESO",
+          "HOSPITAL_LIBERADO",
+          "OBITO_IML"
         ],
         required: true
       }
@@ -97,12 +112,10 @@ const BoletimOcorrenciaSchema = new mongoose.Schema(
 
     suspeito: {
       nome: { type: String, default: "Não identificado" },
+      rg: { type: String, default: "" },
       vestimenta: { type: String, default: "" },
       corPele: { type: String, default: "" },
-      cabelo: { type: String, default: "" },
-      barba: { type: String, default: "" },
-      altura: { type: String, default: "" },
-      porteFisico: { type: String, default: "" }
+      cabelo: { type: String, default: "" }
     },
 
     veiculoSuspeito: {

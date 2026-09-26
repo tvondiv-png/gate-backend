@@ -7,48 +7,122 @@ const {
 } = require("../services/boletimOcorrenciaService");
 
 /* =========================================================
+   VALIDA O CORPO E COMPÕE O TEXTO (usado por criar e preview)
+========================================================= */
+
+function validarEComporTexto(body) {
+  const {
+    viatura,
+    equipe,
+    naturezaFatos,
+    localAbordagem,
+    localFinalizacao,
+    abordagem,
+    suspeito,
+    veiculoSuspeito,
+    ilicitos
+  } = body;
+
+  if (!viatura || !String(viatura).trim()) {
+    return { erro: "Informe a viatura" };
+  }
+
+  if (!Array.isArray(naturezaFatos) || naturezaFatos.length === 0) {
+    return { erro: "Selecione ao menos um artigo na natureza dos fatos" };
+  }
+
+  if (!localAbordagem?.rua?.trim() || !localAbordagem?.bairro?.trim()) {
+    return { erro: "Informe rua e bairro do local da abordagem" };
+  }
+
+  if (!abordagem?.tipo || !abordagem?.resultado || !abordagem?.ordemDadaPor?.trim()) {
+    return {
+      erro: "Preencha o tipo de abordagem, quem deu a ordem e o resultado"
+    };
+  }
+
+  const ilicitosFinal = Array.isArray(ilicitos) ? ilicitos : [];
+  const equipeFinal = Array.isArray(equipe) ? equipe : [];
+
+  const localFinalizacaoFinal =
+    localFinalizacao?.rua?.trim() && localFinalizacao?.bairro?.trim()
+      ? localFinalizacao
+      : null;
+
+  const relatoTexto = gerarRelato({
+    viatura,
+    abordagem,
+    ilicitos: ilicitosFinal
+  });
+
+  const textoCompleto = gerarTextoCompleto({
+    viatura,
+    equipe: equipeFinal,
+    naturezaFatos,
+    localAbordagem,
+    localFinalizacao: localFinalizacaoFinal,
+    relatoTexto,
+    suspeito,
+    veiculoSuspeito,
+    ilicitos: ilicitosFinal
+  });
+
+  return {
+    dados: {
+      viatura: String(viatura).trim(),
+      equipe: equipeFinal,
+      naturezaFatos,
+      localAbordagem,
+      localFinalizacao: localFinalizacaoFinal,
+      abordagem,
+      suspeito: suspeito || {},
+      veiculoSuspeito: veiculoSuspeito || { possui: false },
+      ilicitos: ilicitosFinal,
+      relatoTexto,
+      textoCompleto
+    }
+  };
+}
+
+/* =========================================================
+   PRÉ-VISUALIZAR (não salva)
+========================================================= */
+
+exports.preview = async (req, res) => {
+  try {
+    const { erro, dados } = validarEComporTexto(req.body);
+
+    if (erro) {
+      return res.status(400).json({ message: erro });
+    }
+
+    return res.json({
+      relatoTexto: dados.relatoTexto,
+      textoCompleto: dados.textoCompleto
+    });
+  } catch (err) {
+    console.error("Erro ao pré-visualizar boletim:", err);
+    return res.status(500).json({ message: "Erro ao pré-visualizar boletim" });
+  }
+};
+
+/* =========================================================
    GERAR BOLETIM
 ========================================================= */
 
 exports.criar = async (req, res) => {
   try {
-    const {
-      rso,
-      viatura,
-      equipe,
-      naturezaFatos,
-      local,
-      abordagem,
-      suspeito,
-      veiculoSuspeito,
-      ilicitos
-    } = req.body;
+    const { erro, dados } = validarEComporTexto(req.body);
 
-    if (!viatura || !String(viatura).trim()) {
-      return res.status(400).json({ message: "Informe a viatura" });
-    }
-
-    if (!Array.isArray(naturezaFatos) || naturezaFatos.length === 0) {
-      return res.status(400).json({
-        message: "Selecione ao menos um artigo na natureza dos fatos"
-      });
-    }
-
-    if (!local?.rua?.trim() || !local?.bairro?.trim()) {
-      return res.status(400).json({ message: "Informe rua e bairro do local" });
-    }
-
-    if (!abordagem?.tipo || !abordagem?.resultado || !abordagem?.ordemDadaPor?.trim()) {
-      return res.status(400).json({
-        message: "Preencha o tipo de abordagem, quem deu a ordem e o resultado"
-      });
+    if (erro) {
+      return res.status(400).json({ message: erro });
     }
 
     let rsoRef = null;
 
-    if (rso) {
+    if (req.body.rso) {
       const rsoDoc = await RSO.findOne({
-        _id: rso,
+        _id: req.body.rso,
         criadoPor: req.user.id
       })
         .select("_id")
@@ -59,25 +133,6 @@ exports.criar = async (req, res) => {
       }
     }
 
-    const ilicitosFinal = Array.isArray(ilicitos) ? ilicitos : [];
-
-    const relatoTexto = gerarRelato({
-      viatura,
-      abordagem,
-      ilicitos: ilicitosFinal
-    });
-
-    const textoCompleto = gerarTextoCompleto({
-      viatura,
-      equipe: Array.isArray(equipe) ? equipe : [],
-      naturezaFatos,
-      local,
-      relatoTexto,
-      suspeito,
-      veiculoSuspeito,
-      ilicitos: ilicitosFinal
-    });
-
     const boletim = await BoletimOcorrencia.create({
       criadoPor: req.user.id,
       funcionalCriador: req.user.funcional,
@@ -86,17 +141,7 @@ exports.criar = async (req, res) => {
 
       rso: rsoRef,
 
-      viatura: String(viatura).trim(),
-      equipe: Array.isArray(equipe) ? equipe : [],
-      naturezaFatos,
-      local,
-      abordagem,
-      suspeito: suspeito || {},
-      veiculoSuspeito: veiculoSuspeito || { possui: false },
-      ilicitos: ilicitosFinal,
-
-      relatoTexto,
-      textoCompleto
+      ...dados
     });
 
     return res.status(201).json({
@@ -119,7 +164,7 @@ exports.listarMeus = async (req, res) => {
   try {
     const lista = await BoletimOcorrencia.find({ criadoPor: req.user.id })
       .sort({ createdAt: -1 })
-      .select("viatura local naturezaFatos abordagem.resultado createdAt")
+      .select("viatura localAbordagem naturezaFatos abordagem.resultado createdAt")
       .lean();
 
     return res.json(lista);
@@ -139,7 +184,7 @@ exports.listarTodos = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(500)
       .select(
-        "viatura local naturezaFatos abordagem.resultado nomeCriador patenteCriador funcionalCriador createdAt"
+        "viatura localAbordagem naturezaFatos abordagem.resultado nomeCriador patenteCriador funcionalCriador createdAt"
       )
       .lean();
 

@@ -3,12 +3,14 @@
 
    Recebe só as respostas básicas do policial e monta o texto
    completo seguindo a estrutura do Art. 17.2 do Regulamento
-   Interno (Viatura, Natureza dos fatos, Local, Relato, Ponto
+   Interno (Viatura, Natureza dos fatos, Local, Relato, Dados
    do suspeito, Veículo do suspeito, Ilícitos encontrados).
 
    Não usa nenhuma IA/API externa — é composição de texto por
    modelo (templates), 100% determinística e gratuita.
 ========================================================= */
+
+const CIDADE_FIXA = "Brasil Capital";
 
 const LABEL_TIPO_ABORDAGEM = {
   FUNDADA_SUSPEITA: "fundada suspeita de porte de item ilícito",
@@ -23,8 +25,12 @@ const LABEL_RESULTADO = {
     "liberado no local, não sendo constatada irregularidade que justificasse a detenção",
   CONDUZIDO_DELEGACIA:
     "conduzido à Delegacia de Polícia Civil para os procedimentos cabíveis",
-  ENCAMINHADO_HOSPITAL:
-    "encaminhado à unidade hospitalar para atendimento médico"
+  HOSPITAL_PRESO:
+    "encaminhado à unidade hospitalar para atendimento médico e, na sequência, preso e conduzido à unidade de custódia",
+  HOSPITAL_LIBERADO:
+    "encaminhado à unidade hospitalar para atendimento médico e, após avaliação, liberado",
+  OBITO_IML:
+    "alvejado durante a ocorrência, vindo a óbito no local, sendo o corpo conduzido ao IML"
 };
 
 const LABEL_PROCEDIMENTO = {
@@ -43,9 +49,30 @@ function formatarIlicito(item) {
     return `Valores: R$ ${item.quantidade || "0,00"} em notas marcadas`;
   }
 
-  return `${item.tipo}: ${item.quantidade || "-"}${
-    item.descricao ? ` — ${item.descricao}` : ""
-  }`;
+  if (item.tipo === "Armas") {
+    const modelo = item.subtipo ? ` (${item.subtipo})` : "";
+    const serial = item.serial ? ` — nº de série: ${item.serial}` : "";
+    return `Armas${modelo}: ${item.quantidade || "1"}${serial}${
+      item.descricao ? ` — ${item.descricao}` : ""
+    }`;
+  }
+
+  if (item.tipo === "Munições") {
+    return `Munições${item.subtipo ? ` (${item.subtipo})` : ""}: ${
+      item.quantidade || "-"
+    }${item.descricao ? ` — ${item.descricao}` : ""}`;
+  }
+
+  if (item.tipo === "Entorpecentes") {
+    const substancia = item.subtipo || "não especificado";
+    return `Entorpecentes (${substancia}): ${item.quantidade || "-"}${
+      item.descricao ? ` — ${item.descricao}` : ""
+    }`;
+  }
+
+  // Ilicitos (capuz, algema, lockpick, bomba caseira, outros)
+  const item_ = item.subtipo || item.descricao || "item ilícito";
+  return `Ilícitos (${item_}): ${item.quantidade || "-"}`;
 }
 
 /* =========================================================
@@ -89,12 +116,18 @@ function gerarRelato({ viatura, abordagem, ilicitos }) {
    COMPÕE O TEXTO COMPLETO DO BOLETIM
 ========================================================= */
 
+function formatarLocal(local) {
+  if (!local?.rua) return "Não informado.";
+  return `${local.rua}, ${local.bairro}, ${CIDADE_FIXA}.`;
+}
+
 function gerarTextoCompleto(dados) {
   const {
     viatura,
     equipe = [],
     naturezaFatos = [],
-    local,
+    localAbordagem,
+    localFinalizacao,
     relatoTexto,
     suspeito,
     veiculoSuspeito,
@@ -120,16 +153,27 @@ function gerarTextoCompleto(dados) {
     ? ilicitos.map((i) => `- ${formatarIlicito(i)}`).join("\n")
     : "Nenhum item ilícito apreendido.";
 
-  const localTexto = `${local.rua}, ${local.bairro}, ${
-    local.cidade || "Anchieta"
-  }.${local.referencia ? ` Ponto de referência: ${local.referencia}.` : ""}`;
+  const houveFinalizacaoDiferente =
+    localFinalizacao &&
+    localFinalizacao.rua &&
+    (localFinalizacao.rua !== localAbordagem?.rua ||
+      localFinalizacao.bairro !== localAbordagem?.bairro);
+
+  const blocoLocal = houveFinalizacaoDiferente
+    ? `LOCAL DA ABORDAGEM:
+${formatarLocal(localAbordagem)}
+
+LOCAL DE FINALIZAÇÃO DA OCORRÊNCIA:
+${formatarLocal(localFinalizacao)}`
+    : `LOCAL:
+${formatarLocal(localAbordagem)}`;
 
   const veiculoTexto = veiculoSuspeito?.possui
     ? `${veiculoSuspeito.marca} ${veiculoSuspeito.modelo}, cor ${veiculoSuspeito.cor}, placa ${veiculoSuspeito.placa}.`
     : "Não foi localizado veículo relacionado ao suspeito.";
 
   return `BOLETIM DE OCORRÊNCIA POLICIAL MILITAR
-2º Batalhão de Polícia de Choque — Anchieta
+2º Batalhão de Polícia de Choque — ${CIDADE_FIXA}
 
 VIATURA: ${viatura}
 
@@ -139,20 +183,17 @@ ${linhasEquipe}
 NATUREZA DOS FATOS:
 ${linhasNatureza}
 
-LOCAL:
-${localTexto}
+${blocoLocal}
 
 RELATO:
 ${relatoTexto}
 
-PONTO DO SUSPEITO:
+DADOS DO SUSPEITO:
 Nome: ${suspeito?.nome || "Não identificado"}
+RG: ${suspeito?.rg || "não informado"}
 Vestimenta no momento da abordagem: ${suspeito?.vestimenta || "não informada"}.
-Características físicas: pele ${suspeito?.corPele || "-"}, cabelo ${
-    suspeito?.cabelo || "-"
-  }, barba ${suspeito?.barba || "-"}, altura aproximada ${
-    suspeito?.altura || "-"
-  }, porte físico ${suspeito?.porteFisico || "-"}.
+Cor de pele: ${suspeito?.corPele || "-"}
+Cabelo: ${suspeito?.cabelo || "-"}
 
 VEÍCULO DO SUSPEITO:
 ${veiculoTexto}
@@ -164,6 +205,7 @@ ${linhasIlicitos}`;
 module.exports = {
   gerarRelato,
   gerarTextoCompleto,
+  CIDADE_FIXA,
   LABEL_TIPO_ABORDAGEM,
   LABEL_RESULTADO,
   LABEL_PROCEDIMENTO
