@@ -15,6 +15,7 @@ const RocamProfile = require("../models/RocamProfile");
 const RocamStage = require("../models/RocamStage");
 const RocamHistory = require("../models/RocamHistory");
 const RocamEvaluation = require("../models/RocamEvaluation");
+const PatrolHours = require("../models/PatrolHours");
 
 const STATUS_ESTAGIO_ABERTO = [
   "EM_ANDAMENTO",
@@ -74,6 +75,7 @@ exports.getDashboard = async (req, res) => {
       historico: [],
       estagio: null,
       minhasAvaliacoes: [],
+      minhasHoras: null,
       bracal: null,
       comando: null
     };
@@ -84,6 +86,16 @@ exports.getDashboard = async (req, res) => {
         .limit(8)
         .select("evento titulo descricao dataEvento papelAnterior papelNovo")
         .lean();
+
+      const horas = await PatrolHours.findOne({ funcional: profile.funcional })
+        .select("horasSemanaMin horasMesMin ausenciaPatrulhamento")
+        .lean();
+
+      out.minhasHoras = {
+        horasSemanaMin: horas?.horasSemanaMin || 0,
+        horasMesMin: horas?.horasMesMin || 0,
+        ausenciaPatrulhamento: horas?.ausenciaPatrulhamento || "normal"
+      };
     }
 
     /* ============ ESTAGIÁRIO ============ */

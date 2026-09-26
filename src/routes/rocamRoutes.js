@@ -17,6 +17,9 @@ const dashboardController =
 const graficosController =
   require("../controllers/rocamGraficosController");
 
+const patrulhaController =
+  require("../controllers/rocamPatrulhaController");
+
 const {
   protect
 } =
@@ -255,6 +258,18 @@ router.get(
   "/comando/graficos",
   onlyRocamCommand,
   graficosController.getGraficos
+);
+
+router.get(
+  "/comando/patrulha-ao-vivo",
+  onlyRocamCommand,
+  patrulhaController.getPatrulhaAoVivo
+);
+
+router.get(
+  "/comando/horas",
+  onlyRocamCommand,
+  patrulhaController.getHorasEfetivo
 );
 
 /* =========================================================
