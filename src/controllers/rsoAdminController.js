@@ -193,6 +193,15 @@ const contabilizarHorasSeNecessario =
       return;
     }
 
+    const isRocam =
+      String(
+        rso.tipoPatrulhamento ||
+          ""
+      )
+        .trim()
+        .toUpperCase() ===
+      "ROCAM";
+
     const integrantes =
       getTodosIntegrantes(rso);
 
@@ -209,7 +218,10 @@ const contabilizarHorasSeNecessario =
           p.funcional,
           Number(
             p.tempoMinutos
-          )
+          ),
+          {
+            rocam: isRocam
+          }
         );
       }
     }

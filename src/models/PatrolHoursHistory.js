@@ -45,6 +45,16 @@ const PatrolHoursHistorySchema = new mongoose.Schema(
       default: 0
     },
 
+    horasRocamSemanaMin: {
+      type: Number,
+      default: 0
+    },
+
+    horasRocamMesMin: {
+      type: Number,
+      default: 0
+    },
+
     tipoRegistro: {
       type: String,
       enum: ["reset_week", "reset_month"],

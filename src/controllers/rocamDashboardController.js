@@ -88,12 +88,16 @@ exports.getDashboard = async (req, res) => {
         .lean();
 
       const horas = await PatrolHours.findOne({ funcional: profile.funcional })
-        .select("horasSemanaMin horasMesMin ausenciaPatrulhamento")
+        .select(
+          "horasSemanaMin horasMesMin horasRocamSemanaMin horasRocamMesMin ausenciaPatrulhamento"
+        )
         .lean();
 
       out.minhasHoras = {
         horasSemanaMin: horas?.horasSemanaMin || 0,
         horasMesMin: horas?.horasMesMin || 0,
+        horasRocamSemanaMin: horas?.horasRocamSemanaMin || 0,
+        horasRocamMesMin: horas?.horasRocamMesMin || 0,
         ausenciaPatrulhamento: horas?.ausenciaPatrulhamento || "normal"
       };
     }

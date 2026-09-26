@@ -34,6 +34,16 @@ const PatrolHoursSchema = new mongoose.Schema(
       default: 0
     },
 
+    horasRocamSemanaMin: {
+      type: Number,
+      default: 0
+    },
+
+    horasRocamMesMin: {
+      type: Number,
+      default: 0
+    },
+
     ausenciaPatrulhamento: {
       type: String,
       enum: ["normal", "justificada", "nao_justificada", "iniciante"],

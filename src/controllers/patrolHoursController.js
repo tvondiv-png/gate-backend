@@ -34,6 +34,8 @@ const normalizeOfficer = (p) => ({
   status: p.status || "Ativo",
   horasSemanaMin: p.horasSemanaMin || 0,
   horasMesMin: p.horasMesMin || 0,
+  horasRocamSemanaMin: p.horasRocamSemanaMin || 0,
+  horasRocamMesMin: p.horasRocamMesMin || 0,
   ausenciaPatrulhamento: p.ausenciaPatrulhamento || "normal",
   observacaoAusencia: p.observacaoAusencia || ""
 });
@@ -46,6 +48,8 @@ const normalizeHistoryOfficer = (p) => ({
   status: p.status || "Ativo",
   horasSemanaMin: p.horasSemanaMin || 0,
   horasMesMin: p.horasMesMin || 0,
+  horasRocamSemanaMin: p.horasRocamSemanaMin || 0,
+  horasRocamMesMin: p.horasRocamMesMin || 0,
   ausenciaPatrulhamento: p.ausenciaPatrulhamento || "normal",
   observacaoAusencia: p.observacaoAusencia || "",
   tipoRegistro: p.tipoRegistro || "",
@@ -216,6 +220,8 @@ const buildWeeklyHistoryPayload = (registros = []) => {
       observacaoAusencia: item.observacaoAusencia || "",
       horasSemanaMin: Number(item.horasSemanaMin || 0),
       horasMesMin: Number(item.horasMesMin || 0),
+      horasRocamSemanaMin: Number(item.horasRocamSemanaMin || 0),
+      horasRocamMesMin: Number(item.horasRocamMesMin || 0),
       tipoRegistro: "reset_week",
       periodoInicio: item.updatedAt || item.createdAt || agora,
       periodoFim: agora
@@ -236,6 +242,8 @@ const buildMonthlyHistoryPayload = (registros = []) => {
       observacaoAusencia: "",
       horasSemanaMin: Number(item.horasSemanaMin || 0),
       horasMesMin: Number(item.horasMesMin || 0),
+      horasRocamSemanaMin: Number(item.horasRocamSemanaMin || 0),
+      horasRocamMesMin: Number(item.horasRocamMesMin || 0),
       tipoRegistro: "reset_month",
       periodoInicio: item.updatedAt || item.createdAt || agora,
       periodoFim: agora
@@ -557,6 +565,7 @@ exports.resetWeekly = async (req, res) => {
       {
         $set: {
           horasSemanaMin: 0,
+          horasRocamSemanaMin: 0,
           ausenciaPatrulhamento: "normal",
           observacaoAusencia: ""
         }
@@ -608,7 +617,8 @@ exports.resetMonthly = async (req, res) => {
       {},
       {
         $set: {
-          horasMesMin: 0
+          horasMesMin: 0,
+          horasRocamMesMin: 0
         }
       }
     );

@@ -87,7 +87,7 @@ exports.getHorasEfetivo = async (req, res) => {
       funcional: { $in: funcionais }
     })
       .select(
-        "funcional status horasSemanaMin horasMesMin ausenciaPatrulhamento observacaoAusencia"
+        "funcional status horasSemanaMin horasMesMin horasRocamSemanaMin horasRocamMesMin ausenciaPatrulhamento observacaoAusencia"
       )
       .lean();
 
@@ -108,12 +108,16 @@ exports.getHorasEfetivo = async (req, res) => {
         status: h?.status || "Ativo",
         horasSemanaMin: h?.horasSemanaMin || 0,
         horasMesMin: h?.horasMesMin || 0,
+        horasRocamSemanaMin: h?.horasRocamSemanaMin || 0,
+        horasRocamMesMin: h?.horasRocamMesMin || 0,
         ausenciaPatrulhamento: h?.ausenciaPatrulhamento || "normal",
         observacaoAusencia: h?.observacaoAusencia || ""
       };
     });
 
-    efetivo.sort((a, b) => (b.horasSemanaMin || 0) - (a.horasSemanaMin || 0));
+    efetivo.sort(
+      (a, b) => (b.horasRocamSemanaMin || 0) - (a.horasRocamSemanaMin || 0)
+    );
 
     const totalSemanaMin = efetivo.reduce(
       (acc, item) => acc + (item.horasSemanaMin || 0),
@@ -123,16 +127,31 @@ exports.getHorasEfetivo = async (req, res) => {
       (acc, item) => acc + (item.horasMesMin || 0),
       0
     );
+    const totalRocamSemanaMin = efetivo.reduce(
+      (acc, item) => acc + (item.horasRocamSemanaMin || 0),
+      0
+    );
+    const totalRocamMesMin = efetivo.reduce(
+      (acc, item) => acc + (item.horasRocamMesMin || 0),
+      0
+    );
 
     return res.json({
       efetivo,
       resumo: {
         total: efetivo.length,
-        zeroSemana: efetivo.filter((i) => (i.horasSemanaMin || 0) === 0).length,
+        zeroSemana: efetivo.filter(
+          (i) => (i.horasRocamSemanaMin || 0) === 0
+        ).length,
         totalSemanaMin,
         totalMesMin,
+        totalRocamSemanaMin,
+        totalRocamMesMin,
         mediaSemanaMin: efetivo.length
           ? Math.round(totalSemanaMin / efetivo.length)
+          : 0,
+        mediaRocamSemanaMin: efetivo.length
+          ? Math.round(totalRocamSemanaMin / efetivo.length)
           : 0
       }
     });
