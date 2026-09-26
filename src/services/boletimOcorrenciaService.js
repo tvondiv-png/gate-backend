@@ -146,7 +146,7 @@ function gerarTextoCompleto(dados) {
     : "- Não informado";
 
   const linhasNatureza = naturezaFatos.length
-    ? naturezaFatos.map((a) => `- Art. ${a.artigo} — ${a.titulo}`).join("\n")
+    ? naturezaFatos.map((a) => `- ${a.artigo} — ${a.titulo}`).join("\n")
     : "- Não informado";
 
   const linhasIlicitos = ilicitos.length
