@@ -29,13 +29,34 @@ function agruparResets(registros) {
 ========================================================= */
 exports.getGraficos = async (req, res) => {
   try {
-    /* ---- horas por semana (histórico de reset_week) ---- */
-    const hist = await PatrolHoursHistory.find({ tipoRegistro: "reset_week" })
-      .sort({ createdAt: -1 })
-      .limit(1200)
-      .select("horasSemanaMin createdAt")
-      .lean();
+    const desde = new Date();
+    desde.setDate(desde.getDate() - 8 * 7);
 
+    /* As 3 consultas abaixo são independentes — rodam em
+       paralelo numa única viagem de rede até o banco. */
+    const [hist, acoes, ph] = await Promise.all([
+      PatrolHoursHistory.find({ tipoRegistro: "reset_week" })
+        .sort({ createdAt: -1 })
+        .limit(1200)
+        .select("horasSemanaMin createdAt")
+        .lean(),
+
+      Action.find({
+        status: "APROVADA",
+        excluidoHistorico: false,
+        dataAcao: { $gte: desde }
+      })
+        .select("dataAcao")
+        .lean(),
+
+      PatrolHours.find({ status: "Ativo" })
+        .sort({ horasMesMin: -1 })
+        .limit(8)
+        .select("nome patente horasMesMin")
+        .lean()
+    ]);
+
+    /* ---- horas por semana (histórico de reset_week) ---- */
     const grupos = agruparResets(hist).slice(-8);
     const horasPorSemana = grupos.map((g) => ({
       rotulo: fmtDia(g.data),
@@ -45,17 +66,6 @@ exports.getGraficos = async (req, res) => {
     }));
 
     /* ---- ações aprovadas por semana (últimas 8) ---- */
-    const desde = new Date();
-    desde.setDate(desde.getDate() - 8 * 7);
-
-    const acoes = await Action.find({
-      status: "APROVADA",
-      excluidoHistorico: false,
-      dataAcao: { $gte: desde }
-    })
-      .select("dataAcao")
-      .lean();
-
     const semanas = [];
     for (let i = 7; i >= 0; i--) {
       const fim = new Date();
@@ -82,11 +92,6 @@ exports.getGraficos = async (req, res) => {
     }));
 
     /* ---- ranking de horas no mês (top 8) ---- */
-    const ph = await PatrolHours.find({ status: "Ativo" })
-      .sort({ horasMesMin: -1 })
-      .limit(8)
-      .select("nome patente horasMesMin")
-      .lean();
     const rankingHoras = ph.map((p) => ({
       nome: p.nome,
       patente: p.patente,

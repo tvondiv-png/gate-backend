@@ -81,17 +81,21 @@ exports.getDashboard = async (req, res) => {
     };
 
     if (profile && profile.funcional) {
-      out.historico = await RocamHistory.find({ funcional: profile.funcional })
-        .sort({ dataEvento: -1 })
-        .limit(8)
-        .select("evento titulo descricao dataEvento papelAnterior papelNovo")
-        .lean();
+      const [historico, horas] = await Promise.all([
+        RocamHistory.find({ funcional: profile.funcional })
+          .sort({ dataEvento: -1 })
+          .limit(8)
+          .select("evento titulo descricao dataEvento papelAnterior papelNovo")
+          .lean(),
 
-      const horas = await PatrolHours.findOne({ funcional: profile.funcional })
-        .select(
-          "horasSemanaMin horasMesMin horasRocamSemanaMin horasRocamMesMin ausenciaPatrulhamento"
-        )
-        .lean();
+        PatrolHours.findOne({ funcional: profile.funcional })
+          .select(
+            "horasSemanaMin horasMesMin horasRocamSemanaMin horasRocamMesMin ausenciaPatrulhamento"
+          )
+          .lean()
+      ]);
+
+      out.historico = historico;
 
       out.minhasHoras = {
         horasSemanaMin: horas?.horasSemanaMin || 0,

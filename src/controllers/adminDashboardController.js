@@ -10,11 +10,60 @@ const ProfileUpdateRequest = require("../models/ProfileUpdateRequest");
 
 exports.getDashboardData = async (req, res) => {
   try {
-    // =========================
-    // HORAS
-    // =========================
-    const horas = await PatrolHours.find();
+    /*
+      Todas as consultas abaixo são independentes entre si —
+      rodam em paralelo numa única viagem de rede até o banco,
+      em vez de uma esperando a outra terminar (o banco fica em
+      são-paulo, a VPS na europa: cada round-trip custa ~200ms,
+      então isso importa bastante).
+    */
+    const [
+      horas,
+      destaque,
+      destaqueSemana,
+      topHorasMes,
+      topHorasSemana,
+      rsos,
+      cadastros,
+      ausencias,
+      apresentacoes,
+      advertencias,
+      avaliacoesEstagio,
+      requisicoesCadastraisPendentes,
+      ultimoRSO,
+      ultimaAusencia,
+      ultimoCadastro,
+      ultimaApresentacao,
+      ultimaAdvertencia,
+      ultimaRequisicaoCadastral
+    ] = await Promise.all([
+      PatrolHours.find(),
+      PatrolHours.findOne().sort({ horasMesMin: -1 }),
+      PatrolHours.findOne().sort({ horasSemanaMin: -1 }),
+      PatrolHours.find().sort({ horasMesMin: -1 }).limit(3),
+      PatrolHours.find().sort({ horasSemanaMin: -1 }).limit(3),
 
+      RSO.countDocuments({ status: "Pendente" }),
+      SignupRequest.countDocuments({ status: "Pendente" }),
+      Absence.countDocuments({ status: "Pendente" }),
+      ApresentacaoEstagiario.countDocuments({ status: "Enviado" }),
+      Advertencia.countDocuments({ ativa: true }),
+      AvaliacaoEstagio.countDocuments({
+        status: { $in: ["Pendente", "Revisao"] }
+      }),
+      ProfileUpdateRequest.countDocuments({ status: "PENDENTE" }),
+
+      RSO.findOne().sort({ createdAt: -1 }),
+      Absence.findOne().sort({ createdAt: -1 }),
+      SignupRequest.findOne().sort({ createdAt: -1 }),
+      ApresentacaoEstagiario.findOne().sort({ createdAt: -1 }),
+      Advertencia.findOne().sort({ createdAt: -1 }),
+      ProfileUpdateRequest.findOne().sort({ createdAt: -1 })
+    ]);
+
+    // =========================
+    // HORAS (totais)
+    // =========================
     const totalMinutosMes = horas.reduce((total, h) => {
       return total + (h.horasMesMin || 0);
     }, 0);
@@ -24,106 +73,71 @@ exports.getDashboardData = async (req, res) => {
     }, 0);
 
     // =========================
-    // POLICIAL DESTAQUE DO MÊS
+    // PATENTES — uma única consulta pra todos os funcionais
+    // que precisam de Hierarchy (destaques + tops)
     // =========================
-    const destaque = await PatrolHours.findOne().sort({ horasMesMin: -1 });
+    const funcionaisNecessarios = [
+      ...new Set(
+        [
+          destaque?.funcional,
+          destaqueSemana?.funcional,
+          ...topHorasMes.map((item) => item.funcional),
+          ...topHorasSemana.map((item) => item.funcional)
+        ].filter((f) => f !== undefined && f !== null)
+      )
+    ];
 
-    let policialDestaque = null;
+    const hierarquias = funcionaisNecessarios.length
+      ? await Hierarchy.find({ funcional: { $in: funcionaisNecessarios } })
+      : [];
 
-    if (destaque) {
-      const hier = await Hierarchy.findOne({
-        funcional: destaque.funcional
-      });
-
-      policialDestaque = {
-        funcional: destaque.funcional,
-        nome: destaque.nome,
-        patente: hier?.patente || destaque.patente,
-        horas: destaque.horasMesMin
-      };
-    }
-
-    // =========================
-    // POLICIAL DESTAQUE DA SEMANA
-    // =========================
-    const destaqueSemana = await PatrolHours.findOne().sort({ horasSemanaMin: -1 });
-
-    let policialDestaqueSemana = null;
-
-    if (destaqueSemana) {
-      const hier = await Hierarchy.findOne({
-        funcional: destaqueSemana.funcional
-      });
-
-      policialDestaqueSemana = {
-        funcional: destaqueSemana.funcional,
-        nome: destaqueSemana.nome,
-        patente: hier?.patente || destaqueSemana.patente,
-        horas: destaqueSemana.horasSemanaMin
-      };
-    }
-
-    // =========================
-    // TOP 3 POLICIAIS DO MÊS
-    // =========================
-    const topHorasMes = await PatrolHours.find()
-      .sort({ horasMesMin: -1 })
-      .limit(3);
-
-    const topPoliciais = await Promise.all(
-      topHorasMes.map(async (item) => {
-        const hier = await Hierarchy.findOne({
-          funcional: item.funcional
-        });
-
-        return {
-          funcional: item.funcional,
-          nome: item.nome,
-          patente: hier?.patente || item.patente,
-          horas: item.horasMesMin || 0
-        };
-      })
+    const patentePorFuncional = new Map(
+      hierarquias.map((h) => [h.funcional, h.patente])
     );
 
     // =========================
-    // TOP 3 POLICIAIS DA SEMANA
+    // POLICIAL DESTAQUE DO MÊS / DA SEMANA
     // =========================
-    const topHorasSemana = await PatrolHours.find()
-      .sort({ horasSemanaMin: -1 })
-      .limit(3);
+    const policialDestaque = destaque
+      ? {
+          funcional: destaque.funcional,
+          nome: destaque.nome,
+          patente: patentePorFuncional.get(destaque.funcional) || destaque.patente,
+          horas: destaque.horasMesMin
+        }
+      : null;
 
-    const topPoliciaisSemana = await Promise.all(
-      topHorasSemana.map(async (item) => {
-        const hier = await Hierarchy.findOne({
-          funcional: item.funcional
-        });
+    const policialDestaqueSemana = destaqueSemana
+      ? {
+          funcional: destaqueSemana.funcional,
+          nome: destaqueSemana.nome,
+          patente:
+            patentePorFuncional.get(destaqueSemana.funcional) ||
+            destaqueSemana.patente,
+          horas: destaqueSemana.horasSemanaMin
+        }
+      : null;
 
-        return {
-          funcional: item.funcional,
-          nome: item.nome,
-          patente: hier?.patente || item.patente,
-          horas: item.horasSemanaMin || 0
-        };
-      })
-    );
+    // =========================
+    // TOP 3 DO MÊS / DA SEMANA
+    // =========================
+    const topPoliciais = topHorasMes.map((item) => ({
+      funcional: item.funcional,
+      nome: item.nome,
+      patente: patentePorFuncional.get(item.funcional) || item.patente,
+      horas: item.horasMesMin || 0
+    }));
+
+    const topPoliciaisSemana = topHorasSemana.map((item) => ({
+      funcional: item.funcional,
+      nome: item.nome,
+      patente: patentePorFuncional.get(item.funcional) || item.patente,
+      horas: item.horasSemanaMin || 0
+    }));
 
     // =========================
     // PENDÊNCIAS
     // =========================
-    const rsos = await RSO.countDocuments({ status: "Pendente" });
-    const cadastros = await SignupRequest.countDocuments({ status: "Pendente" });
-    const ausencias = await Absence.countDocuments({ status: "Pendente" });
-    const apresentacoes = await ApresentacaoEstagiario.countDocuments({
-      status: "Enviado"
-    });
-    const advertencias = await Advertencia.countDocuments({ ativa: true });
-    const avaliacoesEstagio = await AvaliacaoEstagio.countDocuments({
-      status: { $in: ["Pendente", "Revisao"] }
-    });
-    const requisicoesCadastraisPendentes = await ProfileUpdateRequest.countDocuments({
-      status: "PENDENTE"
-    });
-
     const pendencias = {
       rsos,
       cadastros,
@@ -137,17 +151,6 @@ exports.getDashboardData = async (req, res) => {
     // =========================
     // ÚLTIMAS MOVIMENTAÇÕES
     // =========================
-    const ultimoRSO = await RSO.findOne().sort({ createdAt: -1 });
-    const ultimaAusencia = await Absence.findOne().sort({ createdAt: -1 });
-    const ultimoCadastro = await SignupRequest.findOne().sort({ createdAt: -1 });
-    const ultimaApresentacao = await ApresentacaoEstagiario.findOne().sort({
-      createdAt: -1
-    });
-    const ultimaAdvertencia = await Advertencia.findOne().sort({ createdAt: -1 });
-    const ultimaRequisicaoCadastral = await ProfileUpdateRequest.findOne().sort({
-      createdAt: -1
-    });
-
     const movimentacoes = [
       ultimoRSO
         ? {

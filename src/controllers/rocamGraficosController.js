@@ -22,15 +22,56 @@ exports.getGraficos = async (req, res) => {
     const desde = inicioMes();
 
     /* -----------------------------------------------------
-       PROGRESSO DOS ESTAGIÁRIOS ATIVOS
+       As consultas abaixo são independentes entre si (só
+       perfisAtivos depende de estagiosAtivos) — rodam em
+       paralelo numa única viagem de rede até o banco.
     ----------------------------------------------------- */
 
-    const estagiosAtivos = await RocamStage.find({
-      status: { $in: STATUS_ESTAGIO_ABERTO }
-    })
-      .select("user funcional status progresso dataInicio")
-      .sort({ "progresso.percentualGeral": -1 })
-      .lean();
+    const [estagiosAtivos, avaliacoesPorBracalRaw, statusRaw, aprovados] =
+      await Promise.all([
+        RocamStage.find({
+          status: { $in: STATUS_ESTAGIO_ABERTO }
+        })
+          .select("user funcional status progresso dataInicio")
+          .sort({ "progresso.percentualGeral": -1 })
+          .lean(),
+
+        RocamEvaluation.aggregate([
+          { $match: { dataAvaliacao: { $gte: desde } } },
+          {
+            $group: {
+              _id: "$evaluatorUser",
+              nome: { $first: "$nomeAvaliador" },
+              total: { $sum: 1 },
+              mediaNota: { $avg: "$notaPercentual" }
+            }
+          },
+          { $sort: { total: -1 } },
+          { $limit: 10 }
+        ]),
+
+        RocamStage.aggregate([
+          {
+            $match: {
+              status: {
+                $in: ["APROVADO", "REPROVADO", "CANCELADO", "DESLIGADO"]
+              }
+            }
+          },
+          { $group: { _id: "$status", total: { $sum: 1 } } }
+        ]),
+
+        RocamStage.find({
+          status: "APROVADO",
+          dataConclusao: { $ne: null }
+        })
+          .select("dataInicio dataConclusao")
+          .lean()
+      ]);
+
+    /* -----------------------------------------------------
+       PROGRESSO DOS ESTAGIÁRIOS ATIVOS
+    ----------------------------------------------------- */
 
     const userIdsAtivos = estagiosAtivos.map((item) => item.user);
 
@@ -55,20 +96,6 @@ exports.getGraficos = async (req, res) => {
        AVALIAÇÕES POR BRAÇAL (NO MÊS)
     ----------------------------------------------------- */
 
-    const avaliacoesPorBracalRaw = await RocamEvaluation.aggregate([
-      { $match: { dataAvaliacao: { $gte: desde } } },
-      {
-        $group: {
-          _id: "$evaluatorUser",
-          nome: { $first: "$nomeAvaliador" },
-          total: { $sum: 1 },
-          mediaNota: { $avg: "$notaPercentual" }
-        }
-      },
-      { $sort: { total: -1 } },
-      { $limit: 10 }
-    ]);
-
     const avaliacoesPorBracal = avaliacoesPorBracalRaw.map((item) => ({
       nome: item.nome,
       total: item.total,
@@ -79,17 +106,6 @@ exports.getGraficos = async (req, res) => {
        STATUS FINAL DOS ESTÁGIOS (TODOS)
     ----------------------------------------------------- */
 
-    const statusRaw = await RocamStage.aggregate([
-      {
-        $match: {
-          status: {
-            $in: ["APROVADO", "REPROVADO", "CANCELADO", "DESLIGADO"]
-          }
-        }
-      },
-      { $group: { _id: "$status", total: { $sum: 1 } } }
-    ]);
-
     const statusEstagios = statusRaw.map((item) => ({
       status: item._id,
       total: item.total
@@ -98,13 +114,6 @@ exports.getGraficos = async (req, res) => {
     /* -----------------------------------------------------
        TEMPO MÉDIO DE APROVAÇÃO (DIAS)
     ----------------------------------------------------- */
-
-    const aprovados = await RocamStage.find({
-      status: "APROVADO",
-      dataConclusao: { $ne: null }
-    })
-      .select("dataInicio dataConclusao")
-      .lean();
 
     const tempoMedioAprovacaoDias =
       aprovados.length > 0
@@ -144,34 +153,37 @@ exports.getQuadroHonra = async (req, res) => {
   try {
     const desde = inicioMes();
 
-    /* -----------------------------------------------------
-       BRAÇAL MAIS ATIVO DO MÊS (MAIS AVALIAÇÕES)
-    ----------------------------------------------------- */
+    /* topBracais e estagiosAtivos são independentes — rodam em
+       paralelo. (perfis depende de estagiosAtivos, então fica
+       depois.) */
+    const [topBracais, estagiosAtivos] = await Promise.all([
+      /* -----------------------------------------------------
+         BRAÇAL MAIS ATIVO DO MÊS (MAIS AVALIAÇÕES)
+      ----------------------------------------------------- */
+      RocamEvaluation.aggregate([
+        { $match: { dataAvaliacao: { $gte: desde } } },
+        {
+          $group: {
+            _id: "$evaluatorUser",
+            nome: { $first: "$nomeAvaliador" },
+            total: { $sum: 1 }
+          }
+        },
+        { $sort: { total: -1 } },
+        { $limit: 3 }
+      ]),
 
-    const topBracais = await RocamEvaluation.aggregate([
-      { $match: { dataAvaliacao: { $gte: desde } } },
-      {
-        $group: {
-          _id: "$evaluatorUser",
-          nome: { $first: "$nomeAvaliador" },
-          total: { $sum: 1 }
-        }
-      },
-      { $sort: { total: -1 } },
-      { $limit: 3 }
+      /* -----------------------------------------------------
+         ESTAGIÁRIO DESTAQUE (MAIOR PROGRESSO ATIVO)
+      ----------------------------------------------------- */
+      RocamStage.find({
+        status: { $in: STATUS_ESTAGIO_ABERTO }
+      })
+        .select("user progresso")
+        .sort({ "progresso.percentualGeral": -1 })
+        .limit(3)
+        .lean()
     ]);
-
-    /* -----------------------------------------------------
-       ESTAGIÁRIO DESTAQUE (MAIOR PROGRESSO ATIVO)
-    ----------------------------------------------------- */
-
-    const estagiosAtivos = await RocamStage.find({
-      status: { $in: STATUS_ESTAGIO_ABERTO }
-    })
-      .select("user progresso")
-      .sort({ "progresso.percentualGeral": -1 })
-      .limit(3)
-      .lean();
 
     const perfis = await RocamProfile.find({
       user: { $in: estagiosAtivos.map((item) => item.user) }

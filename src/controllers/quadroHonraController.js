@@ -28,15 +28,20 @@ exports.getQuadroHonra = async (req, res) => {
       };
     };
 
-    const [destaqueMes, destaqueSemana] = await Promise.all([
-      montarDestaque("horasMesMin"),
-      montarDestaque("horasSemanaMin")
-    ]);
-
-    const topMesRaw = await PatrolHours.find({ horasMesMin: { $gt: 0 } })
-      .sort({ horasMesMin: -1 })
-      .limit(3)
-      .lean();
+    const [destaqueMes, destaqueSemana, topMesRaw, conquistasRecentes] =
+      await Promise.all([
+        montarDestaque("horasMesMin"),
+        montarDestaque("horasSemanaMin"),
+        PatrolHours.find({ horasMesMin: { $gt: 0 } })
+          .sort({ horasMesMin: -1 })
+          .limit(3)
+          .lean(),
+        Conquista.find()
+          .sort({ createdAt: -1 })
+          .limit(12)
+          .select("nome patente tipo titulo createdAt")
+          .lean()
+      ]);
 
     const topMes = await Promise.all(
       topMesRaw.map(async (p) => {
@@ -51,12 +56,6 @@ exports.getQuadroHonra = async (req, res) => {
         };
       })
     );
-
-    const conquistasRecentes = await Conquista.find()
-      .sort({ createdAt: -1 })
-      .limit(12)
-      .select("nome patente tipo titulo createdAt")
-      .lean();
 
     return res.json({
       destaqueMes,

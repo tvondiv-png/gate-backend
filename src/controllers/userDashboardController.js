@@ -45,23 +45,23 @@ exports.getMyDashboard = async (req, res) => {
       await syncFromHierarchy(hierarchyAtual);
     }
 
-    const horas = await PatrolHours.findOne({ funcional });
-
-    const notificacoesNaoLidas = await Notification.countDocuments({
-      user: req.user.id,
-      lida: false
-    });
-
-    const totalAcoes = await Action.countDocuments({
-      "participantes.userId": req.user._id,
-      status: "APROVADA",
-      excluidoHistorico: false
-    });
+    const [horas, notificacoesNaoLidas, totalAcoes, sequenciaSemanas] =
+      await Promise.all([
+        PatrolHours.findOne({ funcional }),
+        Notification.countDocuments({
+          user: req.user.id,
+          lida: false
+        }),
+        Action.countDocuments({
+          "participantes.userId": req.user._id,
+          status: "APROVADA",
+          excluidoHistorico: false
+        }),
+        calcularSequenciaSemanas(funcional)
+      ]);
 
     const minutosSemana = horas?.horasSemanaMin || 0;
     const minutosMes = horas?.horasMesMin || 0;
-
-    const sequenciaSemanas = await calcularSequenciaSemanas(funcional);
 
     if (sequenciaSemanas > 0 && sequenciaSemanas % 4 === 0) {
       await registrarConquista({
