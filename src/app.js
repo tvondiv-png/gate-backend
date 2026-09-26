@@ -198,6 +198,11 @@ app.use(
   require("./routes/penalCodeRoutes")
 );
 
+app.use(
+  "/api/boletins",
+  require("./routes/boletimOcorrenciaRoutes")
+);
+
 /* =========================================================
    GALERIA / SLIDESHOW
 ========================================================= */
