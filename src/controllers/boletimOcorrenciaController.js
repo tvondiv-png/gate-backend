@@ -130,15 +130,48 @@ exports.listarMeus = async (req, res) => {
 };
 
 /* =========================================================
+   TODOS OS BOLETINS (COMANDO / ADM)
+========================================================= */
+
+exports.listarTodos = async (req, res) => {
+  try {
+    const lista = await BoletimOcorrencia.find({})
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .select(
+        "viatura local naturezaFatos abordagem.resultado nomeCriador patenteCriador funcionalCriador createdAt"
+      )
+      .lean();
+
+    return res.json(lista);
+  } catch (err) {
+    console.error("Erro ao listar todos os boletins:", err);
+    return res.status(500).json({ message: "Erro ao listar boletins" });
+  }
+};
+
+/* =========================================================
    BUSCAR UM BOLETIM
+
+   Autor vê o próprio. Comando/ADM veem qualquer um (checado
+   pelo mesmo critério do adminOuComando, sem exigir middleware
+   pra não duplicar rota).
 ========================================================= */
 
 exports.getById = async (req, res) => {
   try {
-    const boletim = await BoletimOcorrencia.findOne({
-      _id: req.params.id,
-      criadoPor: req.user.id
-    }).lean();
+    const podeVerTodos =
+      req.user.role === "admin" ||
+      req.user.role === "superadmin" ||
+      req.user.role === "comando" ||
+      req.user.funcao === "Comando do Batalhão" ||
+      req.user.funcao === "Subcomando do Batalhão";
+
+    const filtro = podeVerTodos
+      ? { _id: req.params.id }
+      : { _id: req.params.id, criadoPor: req.user.id };
+
+    const boletim = await BoletimOcorrencia.findOne(filtro).lean();
 
     if (!boletim) {
       return res.status(404).json({ message: "Boletim não encontrado" });
@@ -148,5 +181,29 @@ exports.getById = async (req, res) => {
   } catch (err) {
     console.error("Erro ao buscar boletim:", err);
     return res.status(500).json({ message: "Erro ao buscar boletim" });
+  }
+};
+
+/* =========================================================
+   EXCLUIR BOLETIM (SÓ O PRÓPRIO AUTOR)
+========================================================= */
+
+exports.excluir = async (req, res) => {
+  try {
+    const boletim = await BoletimOcorrencia.findOneAndDelete({
+      _id: req.params.id,
+      criadoPor: req.user.id
+    });
+
+    if (!boletim) {
+      return res.status(404).json({
+        message: "Boletim não encontrado ou você não é o autor"
+      });
+    }
+
+    return res.json({ message: "Boletim excluído com sucesso" });
+  } catch (err) {
+    console.error("Erro ao excluir boletim:", err);
+    return res.status(500).json({ message: "Erro ao excluir boletim" });
   }
 };
