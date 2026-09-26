@@ -235,6 +235,11 @@ app.use(
   require("./routes/superAdminRoutes")
 );
 
+app.use(
+  "/api/superadmin/limpeza-dados",
+  require("./routes/dataWipeRoutes")
+);
+
 /* =========================================================
    LOGS
 ========================================================= */
