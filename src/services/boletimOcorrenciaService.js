@@ -118,7 +118,12 @@ function gerarRelato({ viatura, abordagem, ilicitos }) {
 
 function formatarLocal(local) {
   if (!local?.rua) return "Não informado.";
-  return `${local.rua}, ${local.bairro}, ${CIDADE_FIXA}.`;
+
+  const cia = local.cia
+    ? `\nCompanhia responsável: ${local.cia}`
+    : "";
+
+  return `${local.rua}, ${local.bairro}, ${CIDADE_FIXA}.${cia}`;
 }
 
 function gerarTextoCompleto(dados) {

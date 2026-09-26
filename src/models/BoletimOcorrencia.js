@@ -37,7 +37,8 @@ const IlicitoBoletimSchema = new mongoose.Schema(
 const LocalBoletimSchema = new mongoose.Schema(
   {
     rua: { type: String, required: true },
-    bairro: { type: String, required: true }
+    bairro: { type: String, required: true },
+    cia: { type: String, default: "" }
   },
   { _id: false }
 );
