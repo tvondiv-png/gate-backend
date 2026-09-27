@@ -1,6 +1,7 @@
 const DisciplinaryCase = require("../models/DisciplinaryCase");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const Advertencia = require("../models/Advertencia");
 const logAction = require("../utils/logAction");
 
 function buildCaseNumber(prefixo, sequencial, ano) {
@@ -308,6 +309,24 @@ exports.concluir = async (req, res) => {
     });
 
     await caso.save();
+
+    if (caso.sancaoFinal?.tipo === "ORIENTACAO_VERBAL") {
+      const policial = await User.findById(caso.policial).lean();
+
+      if (policial) {
+        await Advertencia.create({
+          policial: policial._id,
+          funcional: policial.funcional,
+          nome: policial.nome,
+          patente: policial.patente || "-",
+          tipo: "ADV Verbal",
+          semanaReferencia: caso.numero,
+          motivo: `Orientação verbal aplicada na conclusão do processo ${caso.numero}.`,
+          ativa: true,
+          criadoPor: req.user.id
+        });
+      }
+    }
 
     await criarNotificacao({
       user: caso.policial,

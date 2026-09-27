@@ -25,7 +25,7 @@ const AdvertenciaSchema = new mongoose.Schema(
 
     tipo: {
       type: String,
-      enum: ["ADV 1", "ADV 2", "ADV 3"],
+      enum: ["ADV 1", "ADV 2", "ADV 3", "ADV Verbal"],
       required: true
     },
 
