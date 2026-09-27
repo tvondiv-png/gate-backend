@@ -274,7 +274,11 @@ exports.disciplinaResumo = async (req, res) => {
   try {
     const [advertencias, casos] = await Promise.all([
       Advertencia.find().sort({ createdAt: -1 }).lean(),
-      DisciplinaryCase.find().sort({ createdAt: -1 }).lean()
+      DisciplinaryCase.find()
+        .sort({ createdAt: -1 })
+        .populate("policial", "nome funcional patente")
+        .populate("historico.autor", "nome funcional patente")
+        .lean()
     ]);
 
     return res.json({
