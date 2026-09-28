@@ -8,6 +8,7 @@ const { getResumoPublico } = require("../controllers/comandoPatrulhaAoVivoContro
 router.get("/publico/resumo", getResumoPublico);
 
 router.get("/me", protect(["user", "admin", "superadmin"]), controller.meusRSOs);
+router.get("/ativas", protect(["user", "admin", "superadmin"]), controller.viaturasAtivas);
 router.post("/", protect(["user", "admin", "superadmin"]), controller.abrirRSO);
 
 router.post("/:id/adicionar-policial", protect(["user","admin","superadmin"]), controller.adicionarPolicial);

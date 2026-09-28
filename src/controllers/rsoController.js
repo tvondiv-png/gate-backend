@@ -417,6 +417,60 @@ exports.meusRSOs = async (
 };
 
 /* =========================================================
+   VIATURAS ATIVAS AGORA (QUALQUER POLICIAL)
+   Usado para o boletim de ocorrência poder puxar a equipe
+   de uma viatura na ativa, mesmo que não tenha sido o autor
+   quem abriu aquele RSO.
+========================================================= */
+exports.viaturasAtivas = async (req, res) => {
+  try {
+    const rsos = await RSO.find({ status: "Ativo" })
+      .select("viatura tipoPatrulhamento equipe equipeFixa equipeRotativa createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const viaturas = rsos.map((r) => {
+      let integrantes = [];
+
+      if (Array.isArray(r.equipe) && r.equipe.length > 0) {
+        integrantes = r.equipe;
+      } else {
+        integrantes = [
+          r.equipeFixa?.chefe,
+          r.equipeFixa?.auxiliar,
+          ...(r.equipeRotativa?.motorista || []),
+          ...(r.equipeRotativa?.terceiro || []),
+          ...(r.equipeRotativa?.quarto || []),
+          ...(r.equipeRotativa?.quinto || [])
+        ].filter(Boolean);
+      }
+
+      integrantes = integrantes.filter((i) => i.status !== "Encerrado");
+
+      return {
+        _id: r._id,
+        viatura: r.viatura,
+        tipoPatrulhamento: r.tipoPatrulhamento || "VIATURA",
+        createdAt: r.createdAt,
+        equipe: integrantes.map((i) => ({
+          funcional: i.funcional || null,
+          nome: i.nome || "",
+          patente: i.patente || "",
+          cargo: i.cargo || ""
+        }))
+      };
+    });
+
+    return res.json(viaturas);
+  } catch (error) {
+    console.error("Erro ao listar viaturas ativas:", error);
+    return res.status(500).json({
+      message: "Erro ao listar viaturas ativas"
+    });
+  }
+};
+
+/* =========================================================
    ABRIR RSO
 ========================================================= */
 
