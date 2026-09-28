@@ -135,6 +135,7 @@ function gerarTextoCompleto(dados) {
     localFinalizacao,
     relatoTexto,
     suspeito,
+    outrosEnvolvidos = [],
     veiculoSuspeito,
     ilicitos = []
   } = dados;
@@ -173,6 +174,19 @@ ${formatarLocal(localFinalizacao)}`
     : `LOCAL:
 ${formatarLocal(localAbordagem)}`;
 
+  const blocoOutrosEnvolvidos = outrosEnvolvidos.length
+    ? `\n\nOUTROS ENVOLVIDOS:\n${outrosEnvolvidos
+        .map(
+          (p, i) =>
+            `${i + 1}) Nome: ${p.nome || "Não identificado"}
+   RG: ${p.rg || "não informado"}
+   Vestimenta no momento da abordagem: ${p.vestimenta || "não informada"}.
+   Cor de pele: ${p.corPele || "-"}
+   Cabelo: ${p.cabelo || "-"}`
+        )
+        .join("\n\n")}`
+    : "";
+
   const veiculoTexto = veiculoSuspeito?.possui
     ? `${veiculoSuspeito.marca} ${veiculoSuspeito.modelo}, cor ${veiculoSuspeito.cor}, placa ${veiculoSuspeito.placa}.`
     : "Não foi localizado veículo relacionado ao suspeito.";
@@ -198,7 +212,7 @@ Nome: ${suspeito?.nome || "Não identificado"}
 RG: ${suspeito?.rg || "não informado"}
 Vestimenta no momento da abordagem: ${suspeito?.vestimenta || "não informada"}.
 Cor de pele: ${suspeito?.corPele || "-"}
-Cabelo: ${suspeito?.cabelo || "-"}
+Cabelo: ${suspeito?.cabelo || "-"}${blocoOutrosEnvolvidos}
 
 VEÍCULO DO SUSPEITO:
 ${veiculoTexto}

@@ -19,6 +19,7 @@ function validarEComporTexto(body) {
     localFinalizacao,
     abordagem,
     suspeito,
+    outrosEnvolvidos,
     veiculoSuspeito,
     ilicitos
   } = body;
@@ -43,6 +44,9 @@ function validarEComporTexto(body) {
 
   const ilicitosFinal = Array.isArray(ilicitos) ? ilicitos : [];
   const equipeFinal = Array.isArray(equipe) ? equipe : [];
+  const outrosEnvolvidosFinal = Array.isArray(outrosEnvolvidos)
+    ? outrosEnvolvidos.filter((p) => p?.nome?.trim())
+    : [];
 
   const localFinalizacaoFinal =
     localFinalizacao?.rua?.trim() && localFinalizacao?.bairro?.trim()
@@ -63,6 +67,7 @@ function validarEComporTexto(body) {
     localFinalizacao: localFinalizacaoFinal,
     relatoTexto,
     suspeito,
+    outrosEnvolvidos: outrosEnvolvidosFinal,
     veiculoSuspeito,
     ilicitos: ilicitosFinal
   });
@@ -76,6 +81,7 @@ function validarEComporTexto(body) {
       localFinalizacao: localFinalizacaoFinal,
       abordagem,
       suspeito: suspeito || {},
+      outrosEnvolvidos: outrosEnvolvidosFinal,
       veiculoSuspeito: veiculoSuspeito || { possui: false },
       ilicitos: ilicitosFinal,
       relatoTexto,

@@ -34,6 +34,17 @@ const IlicitoBoletimSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const PessoaEnvolvidaBoletimSchema = new mongoose.Schema(
+  {
+    nome: { type: String, default: "Não identificado" },
+    rg: { type: String, default: "" },
+    vestimenta: { type: String, default: "" },
+    corPele: { type: String, default: "" },
+    cabelo: { type: String, default: "" }
+  },
+  { _id: false }
+);
+
 const LocalBoletimSchema = new mongoose.Schema(
   {
     rua: { type: String, required: true },
@@ -117,6 +128,11 @@ const BoletimOcorrenciaSchema = new mongoose.Schema(
       vestimenta: { type: String, default: "" },
       corPele: { type: String, default: "" },
       cabelo: { type: String, default: "" }
+    },
+
+    outrosEnvolvidos: {
+      type: [PessoaEnvolvidaBoletimSchema],
+      default: []
     },
 
     veiculoSuspeito: {
